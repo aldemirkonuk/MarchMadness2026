@@ -31,10 +31,10 @@ todos:
     status: completed
   - id: exp8-player
     content: "Experiment 8: Player matchup sandbox (8 params + style_clash + 4 flags, inline output)"
-    status: in_progress
+    status: completed
   - id: exp9-metrics
     content: "Experiment 9: Add AUC-ROC, Average Precision, LOYO cross-validation to evaluation pipeline"
-    status: pending
+    status: in_progress
 isProject: false
 ---
 
