@@ -560,8 +560,8 @@ def _try_optuna(games, param_keys, start_weights, n_trials, use_wth=False):
         raw = {}
         for key in param_keys:
             base = start_weights.get(key, 1.0 / len(param_keys))
-            low = max(0.001, base * 0.1)
-            high = base * 5.0
+            low = max(0.0005, base * 0.1)
+            high = max(low * 10.0, base * 5.0)
             raw[key] = trial.suggest_float(key, low, high, log=True)
 
         total = sum(raw.values())
