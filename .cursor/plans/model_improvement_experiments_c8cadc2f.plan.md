@@ -22,10 +22,10 @@ todos:
     status: completed
   - id: exp5-volatile
     content: "Experiment 5: Volatile-favorite flagging + WTH volatility integration"
-    status: in_progress
+    status: completed
   - id: exp6-merge
     content: "Experiment 6: Test merging adj_em/barthag/z_rating correlation cluster"
-    status: pending
+    status: in_progress
   - id: exp7-upset
     content: "Experiment 7: Build focused upset detection model for high-upset matchups"
     status: pending
