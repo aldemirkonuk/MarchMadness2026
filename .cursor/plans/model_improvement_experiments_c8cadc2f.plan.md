@@ -25,10 +25,10 @@ todos:
     status: completed
   - id: exp6-merge
     content: "Experiment 6: Test merging adj_em/barthag/z_rating correlation cluster"
-    status: in_progress
+    status: completed
   - id: exp7-upset
     content: "Experiment 7: Build focused upset detection model for high-upset matchups"
-    status: pending
+    status: in_progress
   - id: exp8-player
     content: "Experiment 8: Player matchup sandbox (8 params + style_clash + 4 flags, inline output)"
     status: pending

@@ -119,6 +119,13 @@ def main():
     # Upset probabilities
     _print_upset_analysis(matchups, result_ensemble)
 
+    # Upset detection model flags
+    try:
+        from src.upset_model import print_upset_flags
+        print(f"\n{print_upset_flags(matchups)}")
+    except Exception:
+        pass
+
     # Save results and dashboard
     _save_results(teams, matchups, result_ensemble)
 
