@@ -28,10 +28,10 @@ todos:
     status: completed
   - id: exp7-upset
     content: "Experiment 7: Build focused upset detection model for high-upset matchups"
-    status: in_progress
+    status: completed
   - id: exp8-player
     content: "Experiment 8: Player matchup sandbox (8 params + style_clash + 4 flags, inline output)"
-    status: pending
+    status: in_progress
   - id: exp9-metrics
     content: "Experiment 9: Add AUC-ROC, Average Precision, LOYO cross-validation to evaluation pipeline"
     status: pending

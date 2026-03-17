@@ -126,6 +126,13 @@ def main():
     except Exception:
         pass
 
+    # Player matchup sandbox
+    try:
+        from src.player_matchup import player_matchup_report
+        print(f"\n{player_matchup_report(matchups, teams)}")
+    except Exception:
+        pass
+
     # Save results and dashboard
     _save_results(teams, matchups, result_ensemble)
 
