@@ -347,7 +347,7 @@ def _team_to_stats(team: Team) -> dict:
         "pace": team.pace,
         "barthag": team.barthag,
         "ppg_margin": team.ppg - team.opp_ppg,
-        "win_pct": team.win_pct,
+        "win_pct": team.wins / max(team.wins + team.losses, 1),
         "scoring_balance": team.scoring_balance,
         "eff_height": team.eff_height,
         "dvi": team.dvi,

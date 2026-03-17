@@ -34,7 +34,7 @@ todos:
     status: completed
   - id: exp9-metrics
     content: "Experiment 9: Add AUC-ROC, Average Precision, LOYO cross-validation to evaluation pipeline"
-    status: in_progress
+    status: completed
 isProject: false
 ---
 
@@ -60,7 +60,7 @@ Run each experiment independently, measure accuracy before/after, and keep only 
 - `**consistency`** (currently `= 0.5`): Approximate from KenPom data -- use `1 / (1 + |AdjEM| * 0.02)` as a proxy (dominant teams are more consistent)
 - `**scoring_margin_std`** (currently missing): Add proxy: `base_std * (1 + |AdjEM|/30)^(-0.5)` where `base_std = 14.0` (NCAA average). Teams with high AdjEM have lower variance.
 - `**msrp`** (currently `= 0.0`): Approximate as `AdjEM / 20.0` (correlated with scoring run differential)
-- `**injury_health**` (currently `= 35.0`): Leave as-is (no historical injury data exists)
+- `**injury_health`** (currently `= 35.0`): Leave as-is (no historical injury data exists)
 
 **Files**: [src/weight_optimizer.py](src/weight_optimizer.py) lines 100-187 (`_row_to_param_dict`)
 
@@ -146,7 +146,7 @@ Run sequentially, each measured independently on Brier score:
 4. Underdog's best defender DBPR within 60% of favorite's best scorer OBPR
 
 **Output format**: Inline after each R64 matchup in main.py:
-`*** FLAGGED: star mismatch only +2.1, underdog has two-way threat, style clash: 3PT offense vs elite 3PT D *`**
+`*** FLAGGED: star mismatch only +2.1, underdog has two-way threat, style clash: 3PT offense vs elite 3PT D `***
 
 ## Experiment 9: Evaluation Metrics Upgrade
 
