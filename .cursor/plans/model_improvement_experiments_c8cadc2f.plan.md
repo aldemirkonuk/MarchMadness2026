@@ -4,7 +4,7 @@ overview: Run 8 sequential improvement experiments, measuring each independently
 todos:
   - id: exp1-proxies
     content: "Experiment 1: Fix 5 historical proxy params in weight_optimizer _row_to_param_dict()"
-    status: pending
+    status: in_progress
   - id: exp2-grid
     content: "Experiment 2: Run grid search + Bayesian optimization with fixed proxies"
     status: pending

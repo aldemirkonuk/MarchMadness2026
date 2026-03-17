@@ -24,6 +24,33 @@ def _safe(val, default=0.0):
         return default
 
 
+def _load_historical_lookups():
+    """Load Team Results and Coach Results for CTF/legacy proxies (cached)."""
+    if hasattr(_load_historical_lookups, "_cache"):
+        return _load_historical_lookups._cache
+
+    import os
+    base = os.path.join(os.path.dirname(__file__), "..", "archive-3")
+
+    # Team Results -> legacy_factor (PASE) and ctf (tourney W/L)
+    team_ctf = {}
+    team_pase = {}
+    try:
+        tr = pd.read_csv(os.path.join(base, "Team Results.csv"))
+        for _, row in tr.iterrows():
+            tname = str(row.get("TEAM", "")).strip()
+            games = _safe(row.get("GAMES", 0))
+            wins = _safe(row.get("W", 0))
+            pase = _safe(row.get("PASE", 0))
+            team_ctf[tname] = (wins + 2) / (games + 4) if games > 0 else 0.5
+            team_pase[tname] = max(-3.0, min(5.0, pase))
+    except Exception:
+        pass
+
+    _load_historical_lookups._cache = (team_ctf, team_pase)
+    return team_ctf, team_pase
+
+
 def _row_to_param_dict(row, all_teams_df: pd.DataFrame = None) -> dict:
     """Convert a KenPom Barttorvik CSV row to a dict of the same keys as CORE_WEIGHTS.
 
@@ -100,13 +127,17 @@ def _row_to_param_dict(row, all_teams_df: pd.DataFrame = None) -> dict:
     # Eff height in meters
     eff_height = eff_hgt * 0.0254 if eff_hgt > 10 else eff_hgt
 
-    # Approximate derived params we can't compute perfectly from historical data
+    # Derived params: use real data where available, proxy otherwise
+    team_name = str(row.get("TEAM", "")).strip()
+    team_ctf_lookup, team_pase_lookup = _load_historical_lookups()
+
     top50_perf = win_pct * 0.8 if sos > 30 else win_pct * 0.5
-    ctf = 0.5
-    legacy_factor = 0.0
+    ctf = team_ctf_lookup.get(team_name, 0.5)
+    legacy_factor = team_pase_lookup.get(team_name, 0.0)
     bds = 0.25
     momentum = 0.5 * win_pct + 0.5 * 0.5
-    clutch_factor = 0.35 * win_pct + 0.25 * barthag + 0.20 * 0.5 + 0.20 * 0.5
+    consistency = 1.0 / (1.0 + abs(adj_em) * 0.02)
+    clutch_factor = 0.35 * win_pct + 0.25 * barthag + 0.20 * consistency + 0.20 * 0.5
 
     # NET/z_rating approximations
     net_score = max(0, (68 - seed * 4) / 68.0)
@@ -138,10 +169,12 @@ def _row_to_param_dict(row, all_teams_df: pd.DataFrame = None) -> dict:
     q1_record = win_pct * 0.6 if seed <= 4 else win_pct * 0.3
     q34_loss_rate = max(0, (seed - 4) / 12.0) * 0.1
 
-    msrp = 0.0
-    blowout_resilience = 0.30 * 0.5 + 0.30 * 0.5 + 0.20 * (adj_em / 40.0) + 0.20 * bds
+    msrp = adj_em / 20.0
+    scoring_margin_std = 14.0 * (1.0 + abs(adj_em) / 30.0) ** (-0.5)
+    blowout_resilience = (0.30 * min(max((msrp + 1) / 2.0, 0), 1) +
+                          0.30 * consistency +
+                          0.20 * (adj_em / 40.0) + 0.20 * bds)
     foul_trouble_impact = -(1.0 - bds) * 0.5
-    consistency = 0.5
 
     return {
         "adj_em": adj_em,
@@ -184,6 +217,7 @@ def _row_to_param_dict(row, all_teams_df: pd.DataFrame = None) -> dict:
         "blowout_resilience": blowout_resilience,
         "foul_trouble_impact": foul_trouble_impact,
         "consistency": consistency,
+        "scoring_margin_std": scoring_margin_std,
     }
 
 
