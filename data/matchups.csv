@@ -1,0 +1,33 @@
+region,seed_a,team_a,seed_b,team_b,date,time
+East,1,Duke,16,Siena,3/19,2:50 PM
+East,8,Ohio State,9,TCU,3/19,12:15 PM
+East,5,St. John's,12,Northern Iowa,3/20,7:10 PM
+East,4,Kansas,13,Cal Baptist,3/20,3:45 PM
+East,6,Louisville,11,South Florida,3/19,1:30 PM
+East,3,Michigan State,14,North Dakota State,3/19,4:05 PM
+East,7,UCLA,10,UCF,3/20,7:25 PM
+East,2,Connecticut,15,Furman,3/20,10:00 PM
+West,1,Arizona,16,LIU Brooklyn,3/20,1:35 PM
+West,8,Villanova,9,Utah State,3/19,4:10 PM
+West,5,Wisconsin,12,High Point,3/19,1:50 PM
+West,4,Arkansas,13,Hawaii,3/19,4:25 PM
+West,6,BYU,11,Texas/NC State,3/19,7:25 PM
+West,3,Gonzaga,14,Kennesaw State,3/19,10:00 PM
+West,7,Miami FL,10,Missouri,3/20,10:10 PM
+West,2,Purdue,15,Queens,3/20,7:35 PM
+South,1,Florida,16,Prairie View A&M/Lehigh,3/20,9:25 PM
+South,8,Clemson,9,Iowa,3/20,6:50 PM
+South,5,Vanderbilt,12,McNeese State,3/19,3:15 PM
+South,4,Nebraska,13,Troy,3/19,12:40 PM
+South,6,North Carolina,11,VCU,3/19,6:50 PM
+South,3,Illinois,14,Penn,3/19,9:25 PM
+South,7,Saint Mary's,10,Texas A&M,3/19,7:35 PM
+South,2,Houston,15,Idaho,3/19,10:10 PM
+Midwest,1,Michigan,16,UMBC/Howard,3/19,7:10 PM
+Midwest,8,Georgia,9,Saint Louis,3/19,9:45 PM
+Midwest,5,Texas Tech,12,Akron,3/20,12:40 PM
+Midwest,4,Alabama,13,Hofstra,3/20,3:15 PM
+Midwest,6,Tennessee,11,Miami OH/SMU,3/20,4:25 PM
+Midwest,3,Virginia,14,Wright State,3/20,1:50 PM
+Midwest,7,Kentucky,10,Santa Clara,3/20,12:15 PM
+Midwest,2,Iowa State,15,Tennessee State,3/20,2:50 PM
