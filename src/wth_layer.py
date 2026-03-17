@@ -60,28 +60,32 @@ def compute_wth_adjustments(team: Team, venue_city: str = "",
     return adjustments
 
 
-def compute_total_wth_modifier(adjustments_a: dict, adjustments_b: dict) -> float:
+def compute_total_wth_modifier(adjustments_a: dict, adjustments_b: dict,
+                               team_a: "Team" = None, team_b: "Team" = None
+                               ) -> float:
     """Combine WTH adjustments into a single modifier for upset_volatility.
 
     Returns a value added to the volatility parameter V.
     Positive = more volatile (closer to 50/50).
     """
-    # Sightline affects 3-point shooters
     sightline_effect = (adjustments_a.get("sightline", 0) +
                         adjustments_b.get("sightline", 0)) * 0.5
 
-    # Altitude mainly affects the away team (higher elevation = penalty)
     altitude_effect = abs(adjustments_a.get("altitude", 0) -
                           adjustments_b.get("altitude", 0)) * 0.1
 
-    # Chaos from both teams increases overall volatility
     chaos_effect = (adjustments_a.get("chaos", 0) +
                     adjustments_b.get("chaos", 0)) * 0.5
 
-    # Sentiment is a slight directional adjustment (not volatility)
-    # Handled separately if needed
+    # Volatility from scoring_margin_std (high variance = more chaos)
+    variance_effect = 0.0
+    if team_a is not None and team_b is not None:
+        avg_std = (getattr(team_a, "scoring_margin_std", 10) +
+                   getattr(team_b, "scoring_margin_std", 10)) / 2.0
+        if avg_std > 12.0:
+            variance_effect = min(0.04, (avg_std - 12.0) * 0.008)
 
-    total = sightline_effect + altitude_effect + chaos_effect
+    total = sightline_effect + altitude_effect + chaos_effect + variance_effect
     return np.clip(total, 0.0, 0.15)
 
 

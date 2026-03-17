@@ -27,7 +27,11 @@ REGIONS = ["East", "West", "South", "Midwest"]
 
 def _get_win_prob(team_a: Team, team_b: Team,
                   prob_func: Optional[Callable] = None) -> float:
-    """Compute win probability for team_a vs team_b."""
+    """Compute win probability for team_a vs team_b.
+
+    Incorporates team-specific volatility from scoring_margin_std:
+    higher variance teams have probabilities pulled toward 0.5.
+    """
     if prob_func is not None:
         return prob_func(team_a, team_b)
 
@@ -42,6 +46,16 @@ def _get_win_prob(team_a: Team, team_b: Team,
         p, team_a.chaos_index, team_b.chaos_index,
         pace_diff_norm=abs(team_a.pace - team_b.pace) / 20.0,
     )
+
+    # Volatility adjustment from scoring_margin_std:
+    # high-variance favorites get pulled toward 0.5 (less reliable)
+    std_a = getattr(team_a, "scoring_margin_std", 0)
+    std_b = getattr(team_b, "scoring_margin_std", 0)
+    combined_vol = (std_a + std_b) / 2.0
+    if combined_vol > 12.0:
+        vol_pull = min(0.06, (combined_vol - 12.0) * 0.01)
+        p = p * (1.0 - vol_pull) + 0.5 * vol_pull
+
     return p
 
 

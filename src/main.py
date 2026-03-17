@@ -270,7 +270,7 @@ def _print_bracket_picks(matchups, result):
 
 
 def _print_upset_analysis(matchups, result):
-    """Print upset probability analysis."""
+    """Print upset probability analysis with volatile-favorite flagging."""
     print(f"\n{'='*70}")
     print("  UPSET WATCH")
     print(f"{'='*70}\n")
@@ -298,7 +298,28 @@ def _print_upset_analysis(matchups, result):
         danger = "HIGH" if prob > 0.40 else "MEDIUM" if prob > 0.30 else "LOW"
         print(f"  ({hs.seed}) {hs.name} over ({ls.seed}) {ls.name}")
         print(f"       Upset probability: {prob:.1%} [{danger} RISK]")
+
+        # Flag volatile favorites
+        fav = ls  # lower seed = expected favorite
+        if fav.scoring_margin_std > 13.0:
+            print(f"       !! VOLATILE FAVORITE: {fav.name} margin_std={fav.scoring_margin_std:.1f} (high variance)")
         print()
+
+    # Volatile favorites summary
+    print(f"  --- VOLATILE FAVORITES (high scoring_margin_std) ---\n")
+    volatile = [(m, m.team_a if m.team_a.seed <= m.team_b.seed else m.team_b)
+                for m in matchups]
+    volatile = [(m, fav) for m, fav in volatile
+                if fav.scoring_margin_std > 12.0 and fav.seed <= 6]
+    volatile.sort(key=lambda x: -x[1].scoring_margin_std)
+
+    if volatile:
+        for m, fav in volatile:
+            underdog = m.team_b if fav == m.team_a else m.team_a
+            print(f"  ({fav.seed}) {fav.name:<22s} std={fav.scoring_margin_std:5.1f}  "
+                  f"vs ({underdog.seed}) {underdog.name}")
+    else:
+        print("  No volatile favorites detected.")
 
 
 def _save_results(teams, matchups, result):

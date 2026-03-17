@@ -19,10 +19,10 @@ todos:
     status: completed
   - id: exp4-xgb
     content: "Experiment 4: Expand XGBoost ML_FEATURE_KEYS to 25-30 params"
-    status: in_progress
+    status: completed
   - id: exp5-volatile
     content: "Experiment 5: Volatile-favorite flagging + WTH volatility integration"
-    status: pending
+    status: in_progress
   - id: exp6-merge
     content: "Experiment 6: Test merging adj_em/barthag/z_rating correlation cluster"
     status: pending
