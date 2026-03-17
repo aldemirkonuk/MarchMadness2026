@@ -7,10 +7,10 @@ todos:
     status: completed
   - id: exp2-grid
     content: "Experiment 2: Run grid search + Bayesian optimization with fixed proxies"
-    status: in_progress
+    status: completed
   - id: exp3a-k
     content: "Experiment 3a: Sweep logistic K parameter (3.0-10.0) for Brier score"
-    status: pending
+    status: in_progress
   - id: exp3b-lambda
     content: "Experiment 3b: Sweep ensemble lambda (0.3-0.8)"
     status: pending

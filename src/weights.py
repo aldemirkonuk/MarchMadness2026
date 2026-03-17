@@ -336,7 +336,7 @@ Z_SCORE_PARAMS = {
     "drb_pct",  # range too narrow for min-max to discriminate
 }
 
-LOGISTIC_K = 6.0
+LOGISTIC_K = 14.0
 
 ENSEMBLE_LAMBDA = 0.5
 
