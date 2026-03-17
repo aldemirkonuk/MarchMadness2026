@@ -16,10 +16,10 @@ todos:
     status: completed
   - id: exp3c-platt
     content: "Experiment 3c: Test Platt scaling / isotonic calibration"
-    status: in_progress
+    status: completed
   - id: exp4-xgb
     content: "Experiment 4: Expand XGBoost ML_FEATURE_KEYS to 25-30 params"
-    status: pending
+    status: in_progress
   - id: exp5-volatile
     content: "Experiment 5: Volatile-favorite flagging + WTH volatility integration"
     status: pending

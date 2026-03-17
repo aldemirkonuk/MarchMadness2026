@@ -15,9 +15,12 @@ from src.equations import build_ml_features
 
 
 ML_FEATURE_KEYS = [
-    "adj_em", "efg_pct", "ts_pct", "to_pct", "three_pri", "orb_pct",
-    "drb_pct", "opp_to_pct", "ast_pct", "exp", "seed_score", "sos",
-    "ftr", "blk_pct", "pace", "spi", "barthag", "ppg",
+    "adj_em", "shooting_eff", "to_pct", "orb_pct", "drb_pct",
+    "opp_to_pct", "ast_pct", "exp", "seed_score", "sos",
+    "ftr", "blk_pct", "pace", "barthag", "ppg_margin",
+    "win_pct", "scoring_balance", "eff_height", "dvi",
+    "z_rating", "net_score", "rbm", "consistency", "ctf",
+    "legacy_factor", "scoring_margin_std",
 ]
 
 SEED_WIN_PRIORS = {
@@ -184,33 +187,75 @@ def _build_features_from_actual_matchups(hist_df: pd.DataFrame,
 
 
 def _row_to_stats(row) -> dict:
-    """Convert a DataFrame row to stats dict."""
+    """Convert a DataFrame row to stats dict matching ML_FEATURE_KEYS."""
     seed = int(row.get("SEED", 8) or 8)
     adj_em = float(row.get("KADJ EM", 0) or 0)
+    adj_o = float(row.get("KADJ O", 0) or 0)
+    adj_d = float(row.get("KADJ D", 0) or 0)
     pace = float(row.get("RAW T", 68) or 68)
     pppo = float(row.get("PPPO", 0) or 0)
+    pppd = float(row.get("PPPD", 0) or 0)
+    efg = float(row.get("EFG%", 0) or 0) / 100
+    efg_d = float(row.get("EFG%D", 0) or 0) / 100
+    ftr_val = float(row.get("FTR", 0) or 0) / 100
+    ft_pct = float(row.get("FT%", 0) or 0) / 100
+    tov = float(row.get("TOV%", 0) or 0) / 100
+    tov_d = float(row.get("TOV%D", 0) or 0) / 100
+    orb = float(row.get("OREB%", 0) or 0) / 100
+    drb = float(row.get("DREB%", 0) or 0) / 100
+    blk = float(row.get("BLK%", 0) or 0) / 100
+    ast = float(row.get("AST%", 0) or 0) / 100
+    three_pct = float(row.get("3PT%", 0) or 0) / 100
+    three_pct_d = float(row.get("3PT%D", 0) or 0) / 100
+    two_pct = float(row.get("2PT%", 0) or 0) / 100
+    three_ptr = float(row.get("3PTR", 0) or 0) / 100
+    two_ptr = float(row.get("2PTR", 0) or 0) / 100
+    sos = float(row.get("ELITE SOS", 0) or 0)
+    exp_val = float(row.get("EXP", 2) or 2)
+    barthag = float(row.get("BARTHAG", 0.5) or 0.5)
+    wins = float(row.get("W", 0) or 0)
+    losses = float(row.get("L", 0) or 0)
+    eff_hgt = float(row.get("EFF HGT", 0) or 0)
+
+    ts_approx = efg * 0.85 + ftr_val * ft_pct * 0.15
+    shooting_eff = 0.6 * efg + 0.4 * ts_approx
+    ppg = pppo * pace if pppo > 0 else adj_o * pace / 100.0
+    opp_ppg = pppd * pace if pppd > 0 else adj_d * pace / 100.0
+    win_pct = wins / max(wins + losses, 1)
+    stl_rate = tov_d * 0.5
+    dvi = 0.3 * blk + 0.3 * stl_rate + 0.4 * (1 - three_pct_d)
+
+    from src.weight_optimizer import _load_historical_lookups
+    team_name = str(row.get("TEAM", "")).strip()
+    team_ctf, team_pase = _load_historical_lookups()
+
     return {
         "adj_em": adj_em,
-        "efg_pct": float(row.get("EFG%", 0) or 0) / 100,
-        "ts_pct": float(row.get("EFG%", 0) or 0) / 100 * 0.85 +
-                  float(row.get("FTR", 0) or 0) / 100 * float(row.get("FT%", 0) or 0) / 100 * 0.15,
-        "to_pct": float(row.get("TOV%", 0) or 0) / 100,
-        "three_pri": float(row.get("3PT%", 0) or 0) / 100 *
-                     float(row.get("3PTR", 0) or 0) / 100,
-        "orb_pct": float(row.get("OREB%", 0) or 0) / 100,
-        "drb_pct": float(row.get("DREB%", 0) or 0) / 100,
-        "opp_to_pct": float(row.get("TOV%D", 0) or 0) / 100,
-        "ast_pct": float(row.get("AST%", 0) or 0) / 100,
-        "exp": float(row.get("EXP", 2) or 2),
+        "shooting_eff": shooting_eff,
+        "to_pct": tov,
+        "orb_pct": orb,
+        "drb_pct": drb,
+        "opp_to_pct": tov_d,
+        "ast_pct": ast,
+        "exp": exp_val,
         "seed_score": 1.0 / max(seed, 1),
-        "sos": float(row.get("ELITE SOS", 0) or 0),
-        "ftr": float(row.get("FTR", 0) or 0) / 100 *
-               float(row.get("FT%", 0) or 0) / 100,
-        "blk_pct": float(row.get("BLK%", 0) or 0) / 100,
+        "sos": sos,
+        "ftr": ftr_val * ft_pct,
+        "blk_pct": blk,
         "pace": pace,
-        "spi": adj_em / 20.0,
-        "barthag": float(row.get("BARTHAG", 0.5) or 0.5),
-        "ppg": pppo * pace if pppo > 0 else adj_em * pace / 100.0,
+        "barthag": barthag,
+        "ppg_margin": ppg - opp_ppg,
+        "win_pct": win_pct,
+        "scoring_balance": two_pct * two_ptr + three_pct * three_ptr,
+        "eff_height": eff_hgt * 0.0254 if eff_hgt > 10 else eff_hgt,
+        "dvi": dvi,
+        "z_rating": 0.45 * adj_em + 0.35 * sos + 3.0,
+        "net_score": max(0, (68 - seed * 4) / 68.0),
+        "rbm": (orb + drb) / 2 - 0.5,
+        "consistency": 1.0 / (1.0 + abs(adj_em) * 0.02),
+        "ctf": team_ctf.get(team_name, 0.5),
+        "legacy_factor": team_pase.get(team_name, 0.0),
+        "scoring_margin_std": 14.0 * (1.0 + abs(adj_em) / 30.0) ** (-0.5),
     }
 
 
@@ -288,10 +333,8 @@ def _team_to_stats(team: Team) -> dict:
     """Convert Team object to stats dict for ML features."""
     return {
         "adj_em": team.adj_em,
-        "efg_pct": team.efg_pct,
-        "ts_pct": team.ts_pct,
+        "shooting_eff": team.shooting_eff,
         "to_pct": team.to_pct,
-        "three_pri": team.three_pri,
         "orb_pct": team.orb_pct,
         "drb_pct": team.drb_pct,
         "opp_to_pct": team.opp_to_pct,
@@ -302,9 +345,19 @@ def _team_to_stats(team: Team) -> dict:
         "ftr": team.ftr,
         "blk_pct": team.blk_pct,
         "pace": team.pace,
-        "spi": team.spi,
         "barthag": team.barthag,
-        "ppg": team.ppg,
+        "ppg_margin": team.ppg - team.opp_ppg,
+        "win_pct": team.win_pct,
+        "scoring_balance": team.scoring_balance,
+        "eff_height": team.eff_height,
+        "dvi": team.dvi,
+        "z_rating": team.z_rating,
+        "net_score": team.net_score,
+        "rbm": team.rbm,
+        "consistency": team.consistency,
+        "ctf": team.ctf,
+        "legacy_factor": team.legacy_factor,
+        "scoring_margin_std": team.scoring_margin_std,
     }
 
 
