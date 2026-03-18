@@ -21,7 +21,7 @@ from src.composite import (
 from src.niche import enrich_niche
 from src.cinderella import cinderella_report
 from src.monte_carlo import simulate_tournament, print_results
-from src.weights import CORE_WEIGHTS, MONTE_CARLO_SIMS, ENSEMBLE_LAMBDA
+from src.weights import CORE_WEIGHTS, MONTE_CARLO_SIMS, ENSEMBLE_LAMBDA, TOURNAMENT_CHAOS
 from src.ensemble import blend_all_matchups, disagreement_report
 
 
@@ -214,18 +214,6 @@ def _build_ensemble_prob_func(xgb_model, h2h_lookup):
         if h2h_margin != 0.0:
             z += np.clip(h2h_margin / 30.0, -0.05, 0.05) * 0.5
 
-        # P&R tactical counter: only penalize teams that actually rely on
-        # big-man P&R offense (BMO >= 5.0) when facing strong rim defense.
-        # Guard-driven teams (low BMO) are unaffected.
-        bmo_a = getattr(team_a, "big_man_offense", 0.0)
-        bmo_b = getattr(team_b, "big_man_offense", 0.0)
-        rd_a = getattr(team_a, "rim_defense_bpr", 0.0)
-        rd_b = getattr(team_b, "rim_defense_bpr", 0.0)
-        pnr_a_countered = max(0.0, rd_b - bmo_a) if bmo_a >= 5.0 else 0.0
-        pnr_b_countered = max(0.0, rd_a - bmo_b) if bmo_b >= 5.0 else 0.0
-        pnr_net = (pnr_b_countered - pnr_a_countered) * 0.015
-        z += np.clip(pnr_net, -0.025, 0.025)
-
         p_1a = win_probability_logistic(z, k=14.0)
 
         # scoring_margin_std volatility (sole volatility layer)
@@ -253,6 +241,10 @@ def _build_ensemble_prob_func(xgb_model, h2h_lookup):
         shift = 0.20 * (2.0 * _sigmoid(conf_diff, scale=8.0) - 1.0)
         lam = np.clip(ENSEMBLE_LAMBDA + shift, 0.20, 0.85)
         p_ens = lam * p_1a + (1.0 - lam) * p_1b
+
+        # Tournament chaos floor: pull every probability toward 0.50
+        if TOURNAMENT_CHAOS > 0:
+            p_ens = p_ens * (1.0 - TOURNAMENT_CHAOS) + 0.5 * TOURNAMENT_CHAOS
 
         _cache[key] = p_ens
         _cache[(team_b.name, team_a.name)] = 1.0 - p_ens
@@ -308,26 +300,32 @@ def _print_matchup_predictions(matchups):
 
 
 def _print_bracket_picks(matchups, result):
-    """Print recommended bracket picks."""
+    """Print recommended bracket picks with full round-by-round progression."""
     print(f"\n{'='*70}")
     print("  RECOMMENDED BRACKET PICKS")
     print(f"{'='*70}\n")
 
     odds = result.championship_odds()
-    f4 = result.advancement_odds("Final Four")
 
-    print("  FINAL FOUR:")
-    f4_teams = list(f4.items())[:8]
-    for team, prob in f4_teams[:4]:
-        print(f"    {team}: {prob*100:.1f}%")
+    rounds = [
+        ("ROUND OF 32 (Top 16 most likely to advance)", "Round of 32", 16),
+        ("SWEET SIXTEEN (Top 16)", "Sweet Sixteen", 16),
+        ("ELITE EIGHT (Top 12)", "Elite Eight", 12),
+        ("FINAL FOUR (Top 8)", "Final Four", 8),
+        ("CHAMPIONSHIP GAME (Top 4)", "Champion", 4),
+    ]
 
-    print("\n  CHAMPIONSHIP GAME:")
-    top2 = list(odds.items())[:2]
-    for team, prob in top2:
-        print(f"    {team}: {prob*100:.1f}%")
+    for title, round_name, show_n in rounds:
+        adv = result.advancement_odds(round_name)
+        print(f"  {title}:")
+        for team, prob in list(adv.items())[:show_n]:
+            print(f"    {team:<24s} {prob*100:5.1f}%")
+        print()
 
-    print(f"\n  PREDICTED CHAMPION: {list(odds.items())[0][0]}")
-    print(f"  Championship probability: {list(odds.items())[0][1]*100:.1f}%")
+    champ_name = list(odds.items())[0][0]
+    champ_prob = list(odds.items())[0][1]
+    print(f"  PREDICTED CHAMPION: {champ_name}")
+    print(f"  Championship probability: {champ_prob*100:.1f}%")
 
 
 def _print_upset_analysis(matchups, result):
@@ -421,11 +419,15 @@ def _save_results(teams, matchups, result):
         os.path.join(results_dir, "power_rankings.csv"), index=False
     )
 
-    # Championship odds
+    # Championship odds (all rounds)
     odds = result.championship_odds()
-    odds_data = [{"team": t, "championship_pct": round(p * 100, 2),
-                  "final_four_pct": round(result.final_four_counts.get(t, 0) / result.n_simulations * 100, 2),
-                  "elite_eight_pct": round(result.elite_eight_counts.get(t, 0) / result.n_simulations * 100, 2)}
+    n = result.n_simulations
+    odds_data = [{"team": t,
+                  "championship_pct": round(p * 100, 2),
+                  "final_four_pct": round(result.final_four_counts.get(t, 0) / n * 100, 2),
+                  "elite_eight_pct": round(result.elite_eight_counts.get(t, 0) / n * 100, 2),
+                  "sweet_sixteen_pct": round(result.sweet_sixteen_counts.get(t, 0) / n * 100, 2),
+                  "round_of_32_pct": round(result.round_of_32_counts.get(t, 0) / n * 100, 2)}
                  for t, p in odds.items()]
     pd.DataFrame(odds_data).to_csv(
         os.path.join(results_dir, "championship_odds.csv"), index=False

@@ -144,12 +144,14 @@ def simulate_tournament(teams: List[Team],
             all_results.update(results)
 
             # Count per-round advancements
+            # Tags: R64 = won R64 (reached R32), R32 = won R32 (reached S16),
+            #        S16 = won S16 (reached E8), E8 = won E8 (reached F4)
             for team_name, round_reached in results.items():
-                if round_reached in ("R32", "S16", "E8"):
+                if round_reached in ("R64", "R32", "S16", "E8"):
                     result.round_of_32_counts[team_name] += 1
-                if round_reached in ("S16", "E8"):
+                if round_reached in ("R32", "S16", "E8"):
                     result.sweet_sixteen_counts[team_name] += 1
-                if round_reached == "E8":
+                if round_reached in ("S16", "E8"):
                     result.elite_eight_counts[team_name] += 1
 
         # Final Four
@@ -178,12 +180,16 @@ def print_results(result: SimulationResult, top_n: int = 20) -> None:
 
     odds = result.championship_odds()
 
-    print(f"{'Rank':<6}{'Team':<25}{'Championship %':>15}{'Final Four %':>15}")
-    print(f"{'-'*61}")
+    print(f"{'Rank':<6}{'Team':<22}{'Champ %':>9}{'F4 %':>9}{'E8 %':>9}{'S16 %':>9}{'R32 %':>9}")
+    print(f"{'-'*73}")
 
     for i, (team, prob) in enumerate(list(odds.items())[:top_n], 1):
-        f4_pct = result.final_four_counts.get(team, 0) / result.n_simulations * 100
-        print(f"{i:<6}{team:<25}{prob*100:>14.1f}%{f4_pct:>14.1f}%")
+        n = result.n_simulations
+        f4  = result.final_four_counts.get(team, 0)    / n * 100
+        e8  = result.elite_eight_counts.get(team, 0)   / n * 100
+        s16 = result.sweet_sixteen_counts.get(team, 0) / n * 100
+        r32 = result.round_of_32_counts.get(team, 0)   / n * 100
+        print(f"{i:<6}{team:<22}{prob*100:>8.1f}%{f4:>8.1f}%{e8:>8.1f}%{s16:>8.1f}%{r32:>8.1f}%")
 
     # Biggest upset risks
     print(f"\n{'='*70}")
