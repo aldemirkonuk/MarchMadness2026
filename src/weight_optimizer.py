@@ -508,9 +508,64 @@ def _evaluate_weights(weights: dict, games: List[Tuple],
                       temporal_param: float = 0.95) -> float:
     """Evaluate a weight vector: return temporally-weighted accuracy.
 
+    Normalizes per-year so each tournament field is scaled independently,
+    matching inference-time behavior and avoiding cross-year data leakage
+    (e.g. 2025 stat ranges affecting 2010 game evaluations).
+
     Each game's contribution is scaled by ``recency_weight(year, ...)``.
     When ``temporal_scheme="uniform"`` (default) this reduces to the original
     unweighted accuracy so all existing call-sites are unaffected.
+    """
+    if not games:
+        return 0.0
+
+    year_groups = defaultdict(list)
+    for g in games:
+        year = g[3] if len(g) > 3 else 2016
+        year_groups[year].append(g)
+
+    weighted_correct = 0.0
+    total_weight = 0.0
+
+    for year, year_g in year_groups.items():
+        n_yr = len(year_g)
+        all_params = [g[0] for g in year_g] + [g[1] for g in year_g]
+        normalized = _normalize_param_values(all_params, param_keys)
+        norm_a = normalized[:n_yr]
+        norm_b = normalized[n_yr:]
+
+        for j in range(n_yr):
+            raw_a, raw_b, a_won = year_g[j][0], year_g[j][1], year_g[j][2]
+
+            prob_a = _predict_winner(norm_a[j], norm_b[j], weights, k)
+
+            if use_wth:
+                three_ptr_a = raw_a.get("scoring_balance", 0.15)
+                three_ptr_b = raw_b.get("scoring_balance", 0.15)
+                chaos_a = three_ptr_a * 0.08
+                chaos_b = three_ptr_b * 0.08
+                pace_a = raw_a.get("momentum", 0.5)
+                pace_b = raw_b.get("momentum", 0.5)
+                pace_diff = abs(pace_a - pace_b) / 1.0
+                wth_v = (0.15 * (chaos_a + chaos_b) / 2.0 +
+                         0.05 * pace_diff + 0.02)
+                wth_v = min(max(wth_v, 0.0), 0.15)
+                prob_a = prob_a * (1.0 - wth_v) + 0.5 * wth_v
+
+            w = recency_weight(year, temporal_scheme, temporal_param)
+            if (prob_a > 0.5) == bool(a_won):
+                weighted_correct += w
+            total_weight += w
+
+    return weighted_correct / total_weight if total_weight > 0 else 0.0
+
+
+def _evaluate_weights_global_norm(weights: dict, games: List[Tuple],
+                                  param_keys: list, k: float = 6.0,
+                                  use_wth: bool = False) -> float:
+    """Old evaluator with global normalization (cross-year leakage).
+
+    Kept for comparison in run_leakage_audit(). Do not use for optimization.
     """
     if not games:
         return 0.0
@@ -522,17 +577,12 @@ def _evaluate_weights(weights: dict, games: List[Tuple],
     norm_a_list = normalized[:n_games]
     norm_b_list = normalized[n_games:]
 
-    weighted_correct = 0.0
-    total_weight = 0.0
-
+    correct = 0
     for i in range(n_games):
-        game = games[i]
-        raw_a, raw_b, a_won = game[0], game[1], game[2]
-        year = game[3] if len(game) > 3 else 2016
-
+        a_won = games[i][2]
         prob_a = _predict_winner(norm_a_list[i], norm_b_list[i], weights, k)
-
         if use_wth:
+            raw_a, raw_b = games[i][0], games[i][1]
             three_ptr_a = raw_a.get("scoring_balance", 0.15)
             three_ptr_b = raw_b.get("scoring_balance", 0.15)
             chaos_a = three_ptr_a * 0.08
@@ -544,14 +594,10 @@ def _evaluate_weights(weights: dict, games: List[Tuple],
                      0.05 * pace_diff + 0.02)
             wth_v = min(max(wth_v, 0.0), 0.15)
             prob_a = prob_a * (1.0 - wth_v) + 0.5 * wth_v
+        if (prob_a > 0.5) == bool(a_won):
+            correct += 1
 
-        w = recency_weight(year, temporal_scheme, temporal_param)
-        predicted_a_wins = prob_a > 0.5
-        if predicted_a_wins == bool(a_won):
-            weighted_correct += w
-        total_weight += w
-
-    return weighted_correct / total_weight if total_weight > 0 else 0.0
+    return correct / n_games
 
 
 # ── Stage 1: Random Weight Search ────────────────────────────────────────────
@@ -1116,14 +1162,22 @@ def run_evaluation_metrics() -> str:
     games = _build_eval_games(kb, tm)
     n = len(games)
 
-    # Compute predictions
-    all_params = [g[0] for g in games] + [g[1] for g in games]
-    normalized = _normalize_param_values(all_params, param_keys)
-    norm_a, norm_b = normalized[:n], normalized[n:]
-
-    probs = np.array([_predict_winner(norm_a[i], norm_b[i], CORE_WEIGHTS, LOGISTIC_K)
-                       for i in range(n)])
+    # Per-year normalization: compute predictions per-year to avoid cross-year leakage
+    probs = np.zeros(n)
     labels = np.array([g[2] for g in games])
+
+    year_groups = defaultdict(list)
+    for idx, g in enumerate(games):
+        year_groups[g[3]].append(idx)
+
+    for year, indices in year_groups.items():
+        year_g = [games[i] for i in indices]
+        n_yr = len(year_g)
+        all_params = [g[0] for g in year_g] + [g[1] for g in year_g]
+        normalized = _normalize_param_values(all_params, param_keys)
+        norm_a, norm_b = normalized[:n_yr], normalized[n_yr:]
+        for j, idx in enumerate(indices):
+            probs[idx] = _predict_winner(norm_a[j], norm_b[j], CORE_WEIGHTS, LOGISTIC_K)
 
     # Core metrics
     acc = accuracy_score(labels, probs > 0.5)
@@ -1137,7 +1191,7 @@ def run_evaluation_metrics() -> str:
     lines = [
         "",
         "=" * 70,
-        "  COMPREHENSIVE EVALUATION METRICS",
+        "  COMPREHENSIVE EVALUATION METRICS (per-year normalization)",
         "=" * 70,
         "",
         f"  Historical games evaluated: {n}",
@@ -1188,20 +1242,10 @@ def run_evaluation_metrics() -> str:
         "  └────────────────────────────────────────────────────────────────┘",
     ])
 
-    # Leave-One-Year-Out cross-validation
+    # Leave-One-Year-Out cross-validation (per-year normalization)
     years = sorted(kb["YEAR"].unique())
     years = [y for y in years if 2010 <= y <= 2025]
 
-    loyo_correct = 0
-    loyo_total = 0
-    loyo_probs_all = []
-    loyo_labels_all = []
-
-    for test_year in years:
-        train_games = [(p_a, p_b, w) for (p_a, p_b, w) in games
-                       if _get_year_from_seed(p_a, p_b, seeds_a, seeds_b, games, test_year)]
-
-    # Simpler LOYO: rebuild games per-year and evaluate
     year_games = {}
     for yr in years:
         yr_kb = kb[kb["YEAR"] == yr]
@@ -1266,11 +1310,6 @@ def run_evaluation_metrics() -> str:
     report = "\n".join(lines)
     print(report)
     return report
-
-
-def _get_year_from_seed(*args):
-    """Helper stub -- not actually needed for LOYO implementation above."""
-    return False
 
 
 def run_overfitting_diagnostics() -> str:
@@ -1418,9 +1457,102 @@ def run_overfitting_diagnostics() -> str:
     return report
 
 
+def run_leakage_audit() -> str:
+    """Compare accuracy under leaked vs clean normalization.
+
+    Quantifies exactly how much cross-year normalization inflated the
+    reported accuracy, and shows per-year accuracy stability.
+
+    Three numbers are reported:
+      1. Global normalization (OLD, leaked): min-max across all 18 years
+      2. Per-year normalization (FIXED): each year's field scaled independently
+      3. Per-year LOYO breakdown: accuracy per held-out year
+
+    The gap between (1) and (2) is the normalization leakage inflation.
+    NOTE: weight-optimization leakage (weights saw all years) is NOT removed
+    here — that would require re-optimizing per fold (very expensive).
+    """
+    print("\n  Loading historical data for leakage audit...")
+    kb = pd.read_csv("archive-3/KenPom Barttorvik.csv")
+    tm = pd.read_csv("archive-3/Tournament Matchups.csv")
+
+    param_keys = list(CORE_WEIGHTS.keys())
+    games = _build_eval_games(kb, tm)
+    n = len(games)
+
+    if n < 50:
+        return "ERROR: Not enough games for leakage audit."
+
+    # 1. Global normalization (old leaked method)
+    acc_global = _evaluate_weights_global_norm(
+        CORE_WEIGHTS, games, param_keys, k=LOGISTIC_K)
+
+    # 2. Per-year normalization (fixed method)
+    acc_per_year = _evaluate_weights(
+        CORE_WEIGHTS, games, param_keys, k=LOGISTIC_K)
+
+    inflation = (acc_global - acc_per_year) * 100
+
+    # 3. Per-year breakdown
+    year_groups = defaultdict(list)
+    for g in games:
+        year_groups[g[3]].append(g)
+
+    year_lines = []
+    year_accs = []
+    for yr in sorted(year_groups.keys()):
+        yg = year_groups[yr]
+        if len(yg) < 5:
+            continue
+        yr_acc = _evaluate_weights(CORE_WEIGHTS, yg, param_keys, k=LOGISTIC_K)
+        year_accs.append(yr_acc)
+        year_lines.append(
+            f"  │  {yr}: {yr_acc:.1%} ({int(yr_acc * len(yg))}/{len(yg)} games)")
+
+    mean_acc = np.mean(year_accs)
+    std_acc = np.std(year_accs)
+
+    lines = [
+        "",
+        "=" * 70,
+        "  LEAKAGE AUDIT: NORMALIZATION IMPACT",
+        "=" * 70,
+        "",
+        f"  Historical games: {n}",
+        f"  Years: {min(year_groups.keys())}–{max(year_groups.keys())}",
+        "",
+        "  ┌─ Accuracy Comparison ──────────────────────────────────────────┐",
+        f"  │  Global normalization (OLD):   {acc_global:.4f} ({acc_global*100:.1f}%)     │",
+        f"  │  Per-year normalization (FIX): {acc_per_year:.4f} ({acc_per_year*100:.1f}%)     │",
+        f"  │  Normalization inflation:      {inflation:+.2f}%                   │",
+        f"  │                                                              │",
+        f"  │  Per-year mean ± std:          {mean_acc:.1%} ± {std_acc:.1%}             │",
+        "  └────────────────────────────────────────────────────────────────┘",
+        "",
+        "  ┌─ Per-Year Accuracy ────────────────────────────────────────────┐",
+    ]
+    lines.extend(year_lines)
+    lines.extend([
+        "  └────────────────────────────────────────────────────────────────┘",
+        "",
+        "  NOTE: CORE_WEIGHTS were optimized on the full dataset (all years),",
+        "  so some weight-optimization leakage remains. To fully remove it,",
+        "  re-run the optimizer (which now uses per-year normalization) or",
+        "  implement nested LOYO optimization.",
+        "",
+        "=" * 70,
+    ])
+
+    report = "\n".join(lines)
+    print(report)
+    return report
+
+
 if __name__ == "__main__":
     import sys
-    if "--diagnostics" in sys.argv or "-d" in sys.argv:
+    if "--audit" in sys.argv or "-a" in sys.argv:
+        run_leakage_audit()
+    elif "--diagnostics" in sys.argv or "-d" in sys.argv:
         run_overfitting_diagnostics()
         if "--metrics" in sys.argv:
             run_evaluation_metrics()

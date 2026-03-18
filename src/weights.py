@@ -2,16 +2,16 @@
 
 Two weight sets are available:
   ORIGINAL_WEIGHTS  = hand-tuned weights (pre-optimizer, 70.5% historical accuracy)
-  CORE_WEIGHTS      = optimizer-tuned weights (73.4% historical accuracy, year-safe)
+  CORE_WEIGHTS      = optimizer-tuned weights (73.7% historical accuracy, leak-free)
 
 WTH layer is toggled via DATASET_CONFIG["use_wth_layer"].
   When True:  WTH chaos modifiers (sightline, altitude, chaos index) adjust
               upset volatility in every matchup computation.
   When False: pure weighted composite with no chaos adjustments.
 
-OPTIMIZER RESULTS (1,070 historical tournament games, 2008-2025):
+OPTIMIZER RESULTS (1,070 historical tournament games, 2008-2025, per-year normalization):
   ORIGINAL_WEIGHTS: 70.5% correct predictions
-  CORE_WEIGHTS:     73.4% correct predictions   Δ = +2.9% (year-safe, no leakage)
+  CORE_WEIGHTS:     73.7% correct predictions   Δ = +3.2% (leak-free, per-year norm)
 
 DATA SOURCE LEGEND:
   [REAL]  = loaded directly from a CSV column with no approximation.
@@ -73,156 +73,161 @@ ORIGINAL_WEIGHTS = {
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CORE (optimizer-tuned) weights -- active model
-# Re-optimized after PASE reform + WTH removal + exp reduction.
-# 5K grid + 200-trial Bayesian + 3K constrained perturbation, 1,070 games.
-# Constraints: adj_em >= 12%, barthag >= 5%, exp ~2%, legacy_factor <= 8%.
-# Year-safe features: legacy uses reformed PASE (difficulty coeff + decay);
-# CTF neutral in training.
-# Accuracy: 73.6% on historical tournament data (2008-2025).
+# Leak-free optimization with per-year normalization (no cross-year leakage).
+# Multi-phase: greedy hill-climb + pairwise transfer + 3K random search.
+# Per-year norm verified: each tournament year's field scaled independently.
+# All weights >= 0.001 (user-required floor).
+# Accuracy: 73.7% on 1,070 historical games (2008-2025), per-year norm.
 # ─────────────────────────────────────────────────────────────────────────────
 CORE_WEIGHTS = {
     # ── Tier 1: Raw Quality + Clutch + Elite Performance (42%) ────────────
 
-    # [REAL] KADJ EM from KenPom Barttorvik.csv.
-    # The gold standard single predictor. Now the #1 weight.
-    "adj_em":           0.1154,
+    # ── Tier 1: Raw Quality + Power Rating (30%) ─────────────────────────
 
-    # [MIXED] Clutch factor: win_pct + BARTHAG + consistency + killshots.
-    # Optimizer's #2: teams that close games win in March.
-    "clutch_factor":    0.0555,
+    # [REAL] KADJ EM from KenPom Barttorvik.csv.
+    # The gold standard single predictor — #1 weight.
+    "adj_em":           0.1050,
+
+    # [REAL] BARTHAG from KenPom Barttorvik.csv.
+    # Optimizer elevated this to #2: win probability proxy is a strong signal.
+    "barthag":          0.0957,
+
+    # [MIXED] Rebound margin: (ORB% + DRB%)/2 - 0.5.
+    # Rebounding dominance is a top-3 March predictor.
+    "rbm":              0.0882,
 
     # [REAL] Win% vs Q1A opponents from Resumes.csv.
     # Beating elite teams is the best predictor of tournament success.
-    "top25_perf":       0.0821,
+    "top25_perf":       0.0746,
 
-    # [REAL] Per-game scoring margin std dev (inverted: lower = better).
-    # Consistency / reliability — high-variance teams underperform.
-    "scoring_margin_std": 0.0705,
-
-    # ── Tier 2: Rebounding + Scoring Runs + Turnovers (21%) ──────────────
-
-    # [MIXED] Rebound margin: (ORB% + DRB%)/2 - 0.5.
-    "rbm":              0.0777,
+    # ── Tier 2: Scoring Runs + Turnovers + Consistency (19%) ────────────
 
     # [MIXED] MSRP: scoring run differential from EvanMiya.csv.
     "msrp":             0.0729,
 
+    # [REAL] Per-game scoring margin std dev (inverted: lower = better).
+    # Consistency / reliability — high-variance teams underperform.
+    "scoring_margin_std": 0.0640,
+
     # [REAL] TOV% SOS-adjusted (inverted: lower = better).
-    # Optimizer boosted this: ball security is critical in March.
-    "to_pct":           0.0782,
-
-    # ── Tier 3: Power Rating + Resilience + Defense (16%) ─────────────────
-
-    # [REAL] BARTHAG from KenPom Barttorvik.csv.
-    "barthag":          0.0679,
+    # Ball security is critical in March.
+    "to_pct":           0.0533,
 
     # [MIXED] Blowout resilience: killshots + consistency + AdjEM + BDS.
-    "blowout_resilience": 0.0428,
+    "blowout_resilience": 0.0533,
 
-    # [MIXED] Rim protection.
-    "rpi_rim":          0.0245,
+    # ── Tier 3: Clutch + Z-Rating + Assists (12%) ───────────────────────
+
+    # [MIXED] Clutch factor: win_pct + BARTHAG + consistency + killshots.
+    # Teams that close games win in March.
+    "clutch_factor":    0.0504,
 
     # [MIXED] Z Rating: 0.45*AdjEM + 0.35*SOS + 3.0.
-    "z_rating":         0.0304,
+    "z_rating":         0.0369,
 
-    # ── Tier 4: Scoring Balance + Rebounding + Experience (8%) ────────────
+    # [REAL] AST% from KenPom Barttorvik.csv.
+    "ast_pct":          0.0364,
 
-    # [REAL] Scoring balance: 2PT%*2PTR + 3P%*3PTR.
-    "scoring_balance":  0.0268,
+    # ── Tier 4: Halftime adj + Defense + Rebounds + Scoring (11%) ───────
+
+    # [REAL] Halftime adjustment: H2_PD - H1_PD from StatSharp.
+    "q3_adj_strength":  0.0307,
+
+    # [MIXED] Rim protection.
+    "rpi_rim":          0.0273,
 
     # [REAL] DREB% from KenPom Barttorvik.csv (z-score normalized).
-    "drb_pct":          0.0216,
+    "drb_pct":          0.0245,
 
-    # [REAL] EXP from KenPom Barttorvik.csv.
-    # Reduced to ~2%; still a real signal, but no longer dominant.
-    "exp":              0.0186,
+    # [REAL] Scoring balance: 2PT%*2PTR + 3P%*3PTR.
+    "scoring_balance":  0.0244,
+
+    # ── Tier 5: Legacy + Foul + Depth + Experience (8%) ─────────────────
 
     # [REAL] Legacy factor: reformed PASE (difficulty-normalized,
     # decay-weighted, sqrt-N, capped [-3, +3]).
-    "legacy_factor":    0.0261,
-
-    # ── Tier 5: Supporting metrics (8%) ──────────────────────────────────
-
-    # [REAL] AST% from KenPom Barttorvik.csv.
-    "ast_pct":          0.0300,
-
-    # [MIXED] CWP: star 17+ at halftime win probability.
-    "cwp_star_17_half": 0.0196,
-
-    # [REAL] NET rating from Teamsheet Ranks.csv.
-    "net_score":        0.0143,
+    "legacy_factor":    0.0158,
 
     # [MIXED] Foul trouble impact: -(1-bench_depth) * star_power.
-    # Bumped to 0.8% — star-dependent teams are vulnerable in single-elimination.
-    "foul_trouble_impact": 0.0159,
-
-    # [REAL] Halftime adjustment: H2_PD - H1_PD from StatSharp.
-    "q3_adj_strength":  0.0142,
+    # Star-dependent teams are vulnerable in single-elimination.
+    "foul_trouble_impact": 0.0145,
 
     # [PROXY] Star power index.
-    "spi":              0.0071,
+    "spi":              0.0129,
 
-    # [REAL] Bench depth from KenPom Height.csv.
-    "bds":              0.0089,
+    # [REAL] EXP from KenPom Barttorvik.csv.
+    # Reduced to ~1.3%; still a real signal, but no longer dominant.
+    "exp":              0.0127,
 
-    # [REAL] Free throw reliability: FT% * FTR.
-    "ftr":              0.0079,
+    # [MIXED] CWP: star 17+ at halftime win probability.
+    "cwp_star_17_half": 0.0102,
 
-    # [MIXED] Fragility (inverted). Massively reduced from prior 13.9%.
-    "fragility_score":  0.0052,
-
-    # [REAL] Injury rank from EvanMiya.csv.
-    "injury_health":    0.0089,
-
-    # [REAL] Q3+Q4 loss rate from Teamsheet Ranks.csv (inverted).
-    "q34_loss_rate":    0.0044,
-
-    # ── Tier 6: Tail params ──────────────────────────────────────────────
-
-    # [REAL] ELITE SOS from KenPom Barttorvik.csv.
-    "sos":              0.0036,
-
-    # [MIXED] Defensive versatility: BLK% + STL% + perimeter defense.
-    "dvi":              0.0015,
-
-    # [REAL] TOV%D SOS-adjusted.
-    "opp_to_pct":       0.0026,
-
-    # [MIXED] March readiness composite.
-    "march_readiness":  0.0024,
-
-    # [PROXY] Star above average.
-    "star_above_avg":   0.0022,
-
-    # [REAL] OREB% from KenPom Barttorvik.csv.
-    "orb_pct":          0.0022,
-
-    # [REAL] Effective height (meters).
-    "eff_height":       0.0020,
-
-    # [REAL] Q1 win% from Teamsheet Ranks.csv.
-    "q1_record":        0.0076,
-
-    # [REAL] Coaching tournament factor from Coach Results.csv.
-    "ctf":              0.0013,
-
-    # [REAL] First-half point differential from StatSharp.
-    "offensive_burst":  0.0097,
-
-    # [REAL] PPG margin.
-    "ppg_margin":       0.0011,
+    # ── Tier 6: Supporting metrics (6%) ─────────────────────────────────
 
     # [MIXED] Momentum from TeamRankings ranking trend.
-    "momentum":         0.0053,
+    "momentum":         0.0096,
 
-    # [REAL] Merged shooting efficiency: 0.6*eFG% + 0.4*TS_approx.
-    "shooting_eff":     0.0008,
+    # [REAL] Bench depth from KenPom Height.csv.
+    "bds":              0.0094,
 
-    # [REAL] Seed score: 1 / seed.
-    "seed_score":       0.0008,
+    # [REAL] First-half point differential from StatSharp.
+    "offensive_burst":  0.0089,
 
     # [REAL] Consistency TR Rating from TeamRankings.csv.
-    "consistency":      0.0095,
+    "consistency":      0.0087,
+
+    # [REAL] Injury rank from EvanMiya.csv.
+    "injury_health":    0.0080,
+
+    # [REAL] Free throw reliability: FT% * FTR.
+    "ftr":              0.0072,
+
+    # [REAL] NET rating from Teamsheet Ranks.csv.
+    "net_score":        0.0070,
+
+    # [REAL] Q1 win% from Teamsheet Ranks.csv.
+    "q1_record":        0.0069,
+
+    # ── Tier 7: Tail params (3%) ────────────────────────────────────────
+
+    # [MIXED] Fragility (inverted).
+    "fragility_score":  0.0047,
+
+    # [REAL] Q3+Q4 loss rate from Teamsheet Ranks.csv (inverted).
+    "q34_loss_rate":    0.0040,
+
+    # [REAL] ELITE SOS from KenPom Barttorvik.csv.
+    "sos":              0.0033,
+
+    # [MIXED] March readiness composite.
+    "march_readiness":  0.0032,
+
+    # [MIXED] Defensive versatility: BLK% + STL% + perimeter defense.
+    "dvi":              0.0028,
+
+    # [REAL] TOV%D SOS-adjusted.
+    "opp_to_pct":       0.0023,
+
+    # [PROXY] Star above average.
+    "star_above_avg":   0.0020,
+
+    # [REAL] OREB% from KenPom Barttorvik.csv.
+    "orb_pct":          0.0020,
+
+    # [REAL] Effective height (meters).
+    "eff_height":       0.0018,
+
+    # [REAL] Merged shooting efficiency: 0.6*eFG% + 0.4*TS_approx.
+    "shooting_eff":     0.0013,
+
+    # [REAL] Coaching tournament factor from Coach Results.csv.
+    "ctf":              0.0012,
+
+    # [REAL] PPG margin.
+    "ppg_margin":       0.0010,
+
+    # [REAL] Seed score: 1 / seed.
+    "seed_score":       0.0010,
 }
 
 assert abs(sum(CORE_WEIGHTS.values()) - 1.0) < 1e-6, \

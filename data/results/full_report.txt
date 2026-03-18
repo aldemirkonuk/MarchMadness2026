@@ -8,76 +8,76 @@
 ========================================================================
   #   Team                     Seed  Region      Champ%     F4%     E8%    S16%
   --------------------------------------------------------------------
-  1   Duke                     1     East         27.3%   59.7%   74.1%   87.1%
-  2   Michigan                 1     Midwest      26.9%   62.2%   77.8%   90.3%
-  3   Arizona                  1     West         17.0%   52.4%   70.7%   85.5%
-  4   Florida                  1     South         8.6%   44.9%   66.6%   88.8%
-  5   Illinois                 3     South         3.4%   24.1%   49.5%   76.1%
-  6   Gonzaga                  3     West          2.9%   19.8%   47.2%   76.0%
-  7   Iowa State               2     Midwest       2.5%   15.3%   44.9%   77.3%
-  8   Michigan State           3     East          1.9%   13.5%   40.8%   67.2%
-  9   Purdue                   2     West          1.9%   15.0%   38.0%   74.1%
-  10  Connecticut              2     East          1.7%   14.0%   41.9%   75.9%
-  11  Houston                  2     South         1.5%   14.0%   33.4%   69.4%
-  12  Virginia                 3     Midwest       1.3%   11.0%   35.0%   63.3%
-  13  St. John's               5     East          0.5%    6.4%   14.7%   62.5%
-  14  Nebraska                 4     South         0.5%    6.8%   16.1%   52.4%
-  15  Arkansas                 4     West          0.4%    6.3%   16.2%   59.7%
-  16  Vanderbilt               5     South         0.3%    4.9%   13.0%   41.5%
-  17  Tennessee                6     Midwest       0.2%    3.8%   14.9%   35.9%
-  18  Texas Tech               5     Midwest       0.2%    4.1%   11.5%   61.6%
-  19  Saint Mary's             7     South         0.1%    2.5%    8.6%   24.9%
-  20  Louisville               6     East          0.1%    2.5%   10.5%   27.3%
-  21  Wisconsin                5     West          0.1%    2.2%    7.7%   35.3%
-  22  Kansas                   4     East          0.1%    1.7%    6.3%   32.2%
-  23  North Carolina           6     South         0.1%    1.7%    6.7%   19.1%
-  24  Saint Louis              9     Midwest       0.1%    1.0%    3.1%    5.9%
-  25  Miami FL                 7     West          0.0%    1.5%    6.1%   19.9%
-  26  Alabama                  4     Midwest       0.0%    1.2%    5.0%   31.4%
-  27  BYU                      6     West          0.0%    1.6%    7.6%   22.9%
-  28  Utah State               9     West          0.0%    0.9%    3.5%    9.6%
-  29  Kentucky                 7     Midwest       0.0%    0.7%    3.7%   15.1%
-  30  UCLA                     7     East          0.0%    0.8%    4.2%   15.9%
+  1   Duke                     1     East         27.4%   59.3%   74.0%   87.0%
+  2   Michigan                 1     Midwest      25.3%   60.9%   77.2%   89.7%
+  3   Arizona                  1     West         16.8%   52.0%   70.5%   85.3%
+  4   Florida                  1     South         9.7%   46.4%   67.9%   88.9%
+  5   Illinois                 3     South         3.5%   23.5%   49.2%   75.6%
+  6   Gonzaga                  3     West          3.1%   20.2%   47.1%   75.1%
+  7   Iowa State               2     Midwest       2.5%   15.4%   43.8%   76.2%
+  8   Michigan State           3     East          2.4%   15.1%   43.5%   68.1%
+  9   Purdue                   2     West          1.8%   14.5%   36.5%   72.9%
+  10  Connecticut              2     East          1.5%   12.9%   39.2%   75.7%
+  11  Houston                  2     South         1.5%   13.0%   31.9%   67.0%
+  12  Virginia                 3     Midwest       1.4%   11.4%   34.8%   62.3%
+  13  St. John's               5     East          0.5%    6.3%   14.8%   62.4%
+  14  Nebraska                 4     South         0.5%    6.5%   15.7%   53.2%
+  15  Arkansas                 4     West          0.4%    6.1%   16.0%   59.1%
+  16  Tennessee                6     Midwest       0.3%    4.4%   15.8%   36.9%
+  17  Vanderbilt               5     South         0.2%    4.4%   11.9%   40.4%
+  18  Texas Tech               5     Midwest       0.2%    3.9%   11.6%   61.6%
+  19  Saint Mary's             7     South         0.2%    3.2%   10.1%   27.5%
+  20  Louisville               6     East          0.1%    2.4%   10.4%   26.1%
+  21  Wisconsin                5     West          0.1%    2.2%    7.9%   35.9%
+  22  Kansas                   4     East          0.1%    1.7%    6.2%   31.9%
+  23  Saint Louis              9     Midwest       0.1%    1.3%    3.7%    6.6%
+  24  BYU                      6     West          0.1%    1.9%    8.4%   23.9%
+  25  North Carolina           6     South         0.1%    1.7%    7.0%   19.6%
+  26  Miami FL                 7     West          0.1%    1.7%    6.7%   21.1%
+  27  Alabama                  4     Midwest       0.0%    1.1%    4.9%   30.8%
+  28  Kentucky                 7     Midwest       0.0%    0.8%    4.1%   16.0%
+  29  Utah State               9     West          0.0%    0.9%    3.7%    9.8%
+  30  TCU                      9     East          0.0%    0.7%    2.5%    6.9%
 
   --- EAST REGION ---
-    ( 1) Duke                      Champ:  27.3% | F4:  59.7%
-    ( 3) Michigan State            Champ:   1.9% | F4:  13.5%
-    ( 2) Connecticut               Champ:   1.7% | F4:  14.0%
-    ( 5) St. John's                Champ:   0.5% | F4:   6.4%
-    ( 6) Louisville                Champ:   0.1% | F4:   2.5%
+    ( 1) Duke                      Champ:  27.4% | F4:  59.3%
+    ( 3) Michigan State            Champ:   2.4% | F4:  15.1%
+    ( 2) Connecticut               Champ:   1.5% | F4:  12.9%
+    ( 5) St. John's                Champ:   0.5% | F4:   6.3%
+    ( 6) Louisville                Champ:   0.1% | F4:   2.4%
     ( 4) Kansas                    Champ:   0.1% | F4:   1.7%
-    ( 7) UCLA                      Champ:   0.0% | F4:   0.8%
-    ( 9) TCU                       Champ:   0.0% | F4:   0.6%
+    ( 9) TCU                       Champ:   0.0% | F4:   0.7%
+    ( 7) UCLA                      Champ:   0.0% | F4:   0.7%
 
   --- WEST REGION ---
-    ( 1) Arizona                   Champ:  17.0% | F4:  52.4%
-    ( 3) Gonzaga                   Champ:   2.9% | F4:  19.8%
-    ( 2) Purdue                    Champ:   1.9% | F4:  15.0%
-    ( 4) Arkansas                  Champ:   0.4% | F4:   6.3%
+    ( 1) Arizona                   Champ:  16.8% | F4:  52.0%
+    ( 3) Gonzaga                   Champ:   3.1% | F4:  20.2%
+    ( 2) Purdue                    Champ:   1.8% | F4:  14.5%
+    ( 4) Arkansas                  Champ:   0.4% | F4:   6.1%
     ( 5) Wisconsin                 Champ:   0.1% | F4:   2.2%
-    ( 7) Miami FL                  Champ:   0.0% | F4:   1.5%
-    ( 6) BYU                       Champ:   0.0% | F4:   1.6%
+    ( 6) BYU                       Champ:   0.1% | F4:   1.9%
+    ( 7) Miami FL                  Champ:   0.1% | F4:   1.7%
     ( 9) Utah State                Champ:   0.0% | F4:   0.9%
 
   --- SOUTH REGION ---
-    ( 1) Florida                   Champ:   8.6% | F4:  44.9%
-    ( 3) Illinois                  Champ:   3.4% | F4:  24.1%
-    ( 2) Houston                   Champ:   1.5% | F4:  14.0%
-    ( 4) Nebraska                  Champ:   0.5% | F4:   6.8%
-    ( 5) Vanderbilt                Champ:   0.3% | F4:   4.9%
-    ( 7) Saint Mary's              Champ:   0.1% | F4:   2.5%
+    ( 1) Florida                   Champ:   9.7% | F4:  46.4%
+    ( 3) Illinois                  Champ:   3.5% | F4:  23.5%
+    ( 2) Houston                   Champ:   1.5% | F4:  13.0%
+    ( 4) Nebraska                  Champ:   0.5% | F4:   6.5%
+    ( 5) Vanderbilt                Champ:   0.2% | F4:   4.4%
+    ( 7) Saint Mary's              Champ:   0.2% | F4:   3.2%
     ( 6) North Carolina            Champ:   0.1% | F4:   1.7%
-    ( 8) Clemson                   Champ:   0.0% | F4:   0.4%
+    ( 8) Clemson                   Champ:   0.0% | F4:   0.5%
 
   --- MIDWEST REGION ---
-    ( 1) Michigan                  Champ:  26.9% | F4:  62.2%
-    ( 2) Iowa State                Champ:   2.5% | F4:  15.3%
-    ( 3) Virginia                  Champ:   1.3% | F4:  11.0%
-    ( 6) Tennessee                 Champ:   0.2% | F4:   3.8%
-    ( 5) Texas Tech                Champ:   0.2% | F4:   4.1%
-    ( 9) Saint Louis               Champ:   0.1% | F4:   1.0%
-    ( 4) Alabama                   Champ:   0.0% | F4:   1.2%
-    ( 7) Kentucky                  Champ:   0.0% | F4:   0.7%
+    ( 1) Michigan                  Champ:  25.3% | F4:  60.9%
+    ( 2) Iowa State                Champ:   2.5% | F4:  15.4%
+    ( 3) Virginia                  Champ:   1.4% | F4:  11.4%
+    ( 6) Tennessee                 Champ:   0.3% | F4:   4.4%
+    ( 5) Texas Tech                Champ:   0.2% | F4:   3.9%
+    ( 9) Saint Louis               Champ:   0.1% | F4:   1.3%
+    ( 4) Alabama                   Champ:   0.0% | F4:   1.1%
+    ( 7) Kentucky                  Champ:   0.0% | F4:   0.8%
 
 ========================================================================
   ROUND OF 64 PREDICTIONS (Detailed)
@@ -91,37 +91,37 @@
          - Very young roster -- tournament inexperience risk
 
   ( 8) Ohio State           vs ( 9) TCU                 
-       PICK: TCU (55.6%) [SOLID]  1A:51.6% | 1B:37.9% | ENS:44.4%  UPSET
+       PICK: TCU (57.1%) [SOLID]  1A:48.5% | 1B:37.9% | ENS:42.9%  UPSET
          + Advantage in Clutch performance
          + Strong edge in Offensive rebounding (0.54 vs 0.38)
          - Weak in Shooting efficiency vs opponent
 
   ( 5) St. John's           vs (12) Northern Iowa       
-       PICK: St. John's (90.6%) [SOLID]  1A:95.8% | 1B:80.3% | ENS:90.6%  
+       PICK: St. John's (90.3%) [SOLID]  1A:95.5% | 1B:80.3% | ENS:90.3%  
          + Strong edge in Overall efficiency (0.74 vs 0.45)
          + Strong edge in Clutch performance (0.77 vs 0.26)
          - Weak in Shooting efficiency vs opponent
 
   ( 4) Kansas               vs (13) Cal Baptist         
-       PICK: Kansas (91.6%) [LOCK]  1A:93.0% | 1B:89.8% | ENS:91.6%  
+       PICK: Kansas (90.4%) [LOCK]  1A:90.8% | 1B:89.8% | ENS:90.4%  
          + Strong edge in Overall efficiency (0.71 vs 0.34)
          + Strong edge in Shooting efficiency (0.28 vs 0.03)
          - Weak in Offensive rebounding vs opponent
 
   ( 6) Louisville           vs (11) South Florida       
-       PICK: Louisville (83.5%) [LOCK]  1A:83.1% | 1B:84.0% | ENS:83.5%  
+       PICK: Louisville (82.4%) [LOCK]  1A:80.9% | 1B:84.0% | ENS:82.4%  
          + Strong edge in Overall efficiency (0.73 vs 0.55)
          + Strong edge in Shooting efficiency (0.71 vs 0.25)
          - Weak in Offensive rebounding vs opponent
 
   ( 3) Michigan State       vs (14) North Dakota State  
-       PICK: Michigan State (94.4%) [SOLID]  1A:99.1% | 1B:85.8% | ENS:94.4%  
+       PICK: Michigan State (94.5%) [SOLID]  1A:99.2% | 1B:85.8% | ENS:94.5%  
          + Strong edge in Overall efficiency (0.79 vs 0.32)
          + Strong edge in Clutch performance (0.72 vs 0.55)
          - Weak in Momentum / hot streak vs opponent
 
   ( 7) UCLA                 vs (10) UCF                 
-       PICK: UCLA (66.7%) [LOCK]  1A:68.4% | 1B:64.3% | ENS:66.7%  
+       PICK: UCLA (64.1%) [LOCK]  1A:64.0% | 1B:64.3% | ENS:64.1%  
          + Advantage in Overall efficiency
          + Advantage in Shooting efficiency
          - Weak in Defensive rebounding vs opponent
@@ -141,25 +141,25 @@
          - Weak in Star player above average vs opponent
 
   ( 8) Villanova            vs ( 9) Utah State          
-       PICK: Utah State (71.4%) [SOLID]  1A:22.7% | 1B:41.0% | ENS:28.6%  UPSET
+       PICK: Utah State (71.7%) [SOLID]  1A:22.2% | 1B:41.0% | ENS:28.3%  UPSET
          + Strong edge in Shooting efficiency (0.74 vs 0.45)
          + Advantage in Clutch performance
          - Weak in Strength of schedule vs opponent
 
   ( 5) Wisconsin            vs (12) High Point          
-       PICK: Wisconsin (87.0%) [LOCK]  1A:88.4% | 1B:85.2% | ENS:87.0%  
+       PICK: Wisconsin (87.6%) [LOCK]  1A:89.3% | 1B:85.2% | ENS:87.6%  
          + Strong edge in Overall efficiency (0.69 vs 0.39)
          + Strong edge in Strength of schedule (0.90 vs 0.00)
          - Weak in Inside-outside scoring balance vs opponent
 
   ( 4) Arkansas             vs (13) Hawaii              
-       PICK: Arkansas (95.6%) [LOCK]  1A:98.1% | 1B:91.7% | ENS:95.6%  
+       PICK: Arkansas (95.3%) [LOCK]  1A:97.7% | 1B:91.7% | ENS:95.3%  
          + Strong edge in Overall efficiency (0.74 vs 0.34)
          + Strong edge in Shooting efficiency (0.73 vs 0.35)
          - Weak in Free throw reliability vs opponent
 
   ( 6) BYU                  vs (11) Texas               
-       PICK: BYU (74.4%) [SOLID]  1A:68.7% | 1B:79.4% | ENS:74.4%  
+       PICK: BYU (74.8%) [LOCK]  1A:69.6% | 1B:79.4% | ENS:74.8%  
          + Advantage in Overall efficiency
          + Strong edge in Clutch performance (0.67 vs 0.32)
          - Weak in Free throw reliability vs opponent
@@ -171,7 +171,7 @@
          - Weak in Free throw reliability vs opponent
 
   ( 7) Miami FL             vs (10) Missouri            
-       PICK: Miami FL (77.1%) [SOLID]  1A:81.6% | 1B:69.2% | ENS:77.1%  
+       PICK: Miami FL (77.3%) [SOLID]  1A:81.9% | 1B:69.2% | ENS:77.3%  
          + Advantage in Overall efficiency
          + Advantage in Inside-outside scoring balance
          - Weak in Free throw reliability vs opponent
@@ -191,13 +191,13 @@
          - Weak in Free throw reliability vs opponent
 
   ( 8) Clemson              vs ( 9) Iowa                
-       PICK: Clemson (56.4%) [LOCK]  1A:58.8% | 1B:52.8% | ENS:56.4%  
+       PICK: Clemson (56.6%) [LOCK]  1A:59.1% | 1B:52.8% | ENS:56.6%  
          + Strong edge in Clutch performance (0.54 vs 0.22)
          + Strong edge in Elite competition record (1.00 vs 0.82)
          - Weak in Shooting efficiency vs opponent
 
   ( 5) Vanderbilt           vs (12) McNeese State       
-       PICK: Vanderbilt (83.7%) [LEAN]  1A:91.8% | 1B:63.9% | ENS:83.7%  
+       PICK: Vanderbilt (82.7%) [LEAN]  1A:90.5% | 1B:63.9% | ENS:82.7%  
          + Strong edge in Overall efficiency (0.77 vs 0.47)
          + Strong edge in Shooting efficiency (0.64 vs 0.25)
          - Weak in Offensive rebounding vs opponent
@@ -209,7 +209,7 @@
          - Weak in Offensive rebounding vs opponent
 
   ( 6) North Carolina       vs (11) VCU                 
-       PICK: North Carolina (79.4%) [LOCK]  1A:78.7% | 1B:80.2% | ENS:79.4%  
+       PICK: North Carolina (79.3%) [LOCK]  1A:78.5% | 1B:80.2% | ENS:79.3%  
          + Advantage in Overall efficiency
          + Strong edge in Clutch performance (0.83 vs 0.44)
          - Weak in Free throw reliability vs opponent
@@ -221,13 +221,13 @@
          - Weak in Momentum / hot streak vs opponent
 
   ( 7) Saint Mary's         vs (10) Texas A&M           
-       PICK: Saint Mary's (76.1%) [LOCK]  1A:79.7% | 1B:70.2% | ENS:76.1%  
+       PICK: Saint Mary's (78.5%) [SOLID]  1A:83.0% | 1B:70.2% | ENS:78.5%  
          + Advantage in Overall efficiency
          + Advantage in Clutch performance
          - Weak in Strength of schedule vs opponent
 
   ( 2) Houston              vs (15) Idaho               
-       PICK: Houston (98.3%) [LOCK]  1A:99.1% | 1B:97.4% | ENS:98.3%  
+       PICK: Houston (98.3%) [LOCK]  1A:99.0% | 1B:97.4% | ENS:98.3%  
          + Strong edge in Overall efficiency (0.89 vs 0.25)
          + Strong edge in Clutch performance (0.60 vs 0.19)
          - Weak in Free throw reliability vs opponent
@@ -241,25 +241,25 @@
          - Weak in Defensive rebounding vs opponent
 
   ( 8) Georgia              vs ( 9) Saint Louis         
-       PICK: Saint Louis (60.2%) [SOLID]  1A:34.9% | 1B:48.9% | ENS:39.8%  UPSET
+       PICK: Saint Louis (63.1%) [SOLID]  1A:31.1% | 1B:48.9% | ENS:36.9%  UPSET
          + Strong edge in Shooting efficiency (1.00 vs 0.56)
          + Advantage in Clutch performance
          - Weak in Strength of schedule vs opponent
 
   ( 5) Texas Tech           vs (12) Akron               
-       PICK: Texas Tech (90.3%) [LOCK]  1A:92.1% | 1B:87.8% | ENS:90.3%  
+       PICK: Texas Tech (89.8%) [LOCK]  1A:91.3% | 1B:87.8% | ENS:89.8%  
          + Strong edge in Overall efficiency (0.72 vs 0.47)
          + Strong edge in Strength of schedule (0.95 vs 0.15)
          - Weak in Shooting efficiency vs opponent
 
   ( 4) Alabama              vs (13) Hofstra             
-       PICK: Alabama (84.0%) [LEAN]  1A:92.3% | 1B:63.4% | ENS:84.0%  
+       PICK: Alabama (82.6%) [LEAN]  1A:90.4% | 1B:63.4% | ENS:82.6%  
          + Strong edge in Overall efficiency (0.73 vs 0.41)
          + Strong edge in Shooting efficiency (0.64 vs 0.27)
          - Weak in Defensive rebounding vs opponent
 
   ( 6) Tennessee            vs (11) Miami OH            
-       PICK: Tennessee (88.2%) [LOCK]  1A:91.2% | 1B:83.5% | ENS:88.2%  
+       PICK: Tennessee (88.7%) [LOCK]  1A:92.0% | 1B:83.5% | ENS:88.7%  
          + Strong edge in Overall efficiency (0.74 vs 0.38)
          + Strong edge in Strength of schedule (0.91 vs 0.07)
          - Weak in Shooting efficiency vs opponent
@@ -271,7 +271,7 @@
          - Weak in Inside-outside scoring balance vs opponent
 
   ( 7) Kentucky             vs (10) Santa Clara         
-       PICK: Kentucky (63.4%) [LOCK]  1A:63.8% | 1B:62.8% | ENS:63.4%  
+       PICK: Kentucky (64.1%) [LOCK]  1A:65.1% | 1B:62.8% | ENS:64.1%  
          + Strong edge in Strength of schedule (0.97 vs 0.51)
          + Strong edge in Ball security (low turnovers) (0.96 vs 0.73)
          - Weak in Momentum / hot streak vs opponent
@@ -286,46 +286,46 @@
 ========================================================================
   WEIGHT CONFIGURATION
 ========================================================================
-  adj_em                    12.1% ████████████████████████
-  to_pct                     8.2% ████████████████
-  msrp                       7.6% ███████████████
-  scoring_margin_std         7.4% ██████████████
-  rbm                        6.8% █████████████
-  clutch_factor              5.8% ███████████
-  top25_perf                 5.7% ███████████
-  barthag                    4.7% █████████
-  blowout_resilience         4.5% ████████
-  z_rating                   4.2% ████████
-  ast_pct                    4.2% ████████
-  scoring_balance            2.8% █████
-  rpi_rim                    2.6% █████
-  drb_pct                    2.3% ████
-  exp                        1.9% ███
-  legacy_factor              1.8% ███
-  foul_trouble_impact        1.7% ███
-  net_score                  1.6% ███
-  q3_adj_strength            1.5% ██
-  spi                        1.5% ██
-  cwp_star_17_half           1.2% ██
-  momentum                   1.1% ██
-  offensive_burst            1.0% ██
-  consistency                1.0% ██
+  adj_em                    10.5% █████████████████████
+  barthag                    9.6% ███████████████████
+  rbm                        8.8% █████████████████
+  top25_perf                 7.5% ██████████████
+  msrp                       7.3% ██████████████
+  scoring_margin_std         6.4% ████████████
+  to_pct                     5.3% ██████████
+  blowout_resilience         5.3% ██████████
+  clutch_factor              5.0% ██████████
+  z_rating                   3.7% ███████
+  ast_pct                    3.6% ███████
+  q3_adj_strength            3.1% ██████
+  rpi_rim                    2.7% █████
+  drb_pct                    2.5% ████
+  scoring_balance            2.4% ████
+  legacy_factor              1.6% ███
+  foul_trouble_impact        1.5% ██
+  spi                        1.3% ██
+  exp                        1.3% ██
+  cwp_star_17_half           1.0% ██
+  momentum                   1.0% █
   bds                        0.9% █
-  injury_health              0.9% █
-  ftr                        0.8% █
-  q1_record                  0.8% █
-  fragility_score            0.5% █
-  q34_loss_rate              0.5% 
-  sos                        0.4% 
+  offensive_burst            0.9% █
+  consistency                0.9% █
+  injury_health              0.8% █
+  ftr                        0.7% █
+  net_score                  0.7% █
+  q1_record                  0.7% █
+  fragility_score            0.5% 
+  q34_loss_rate              0.4% 
+  sos                        0.3% 
+  march_readiness            0.3% 
   dvi                        0.3% 
-  opp_to_pct                 0.3% 
-  march_readiness            0.2% 
+  opp_to_pct                 0.2% 
   star_above_avg             0.2% 
   orb_pct                    0.2% 
   eff_height                 0.2% 
+  shooting_eff               0.1% 
   ctf                        0.1% 
   ppg_margin                 0.1% 
-  shooting_eff               0.1% 
   seed_score                 0.1% 
 
 ========================================================================
