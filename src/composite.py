@@ -46,6 +46,12 @@ def compute_win_probability(matchup: Matchup) -> float:
         CORE_WEIGHTS,
     )
 
+    # H2H season tiebreaker: small nudge when the two teams met this year.
+    # Normalize the raw margin (typically -30 to +30) into a small z shift.
+    h2h = getattr(matchup, "h2h_season_edge", 0.0)
+    if h2h != 0.0:
+        z += np.clip(h2h / 30.0, -0.05, 0.05) * 0.5
+
     p_base = win_probability_logistic(z, k=LOGISTIC_K)
 
     wth_adj = 0.0
@@ -93,7 +99,7 @@ def generate_pros_cons(matchup: Matchup) -> Matchup:
         "scoring_balance": "Inside-outside scoring balance",
         "orb_pct": "Offensive rebounding",
         "seed_score": "Seed strength",
-        "top50_perf": "Elite competition record",
+        "top25_perf": "Elite competition record",
         "ftr": "Free throw reliability",
         "ast_pct": "Ball movement / assists",
         "spi": "Star power",

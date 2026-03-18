@@ -1,33 +1,33 @@
 region,team_a,seed_a,team_b,seed_b,prob_a_1a,prob_a_1b,prob_a_ensemble,confidence,predicted_winner
-East,Duke,1,Siena,16,0.99,0.984,0.987,0.994,Duke
-East,Ohio State,8,TCU,9,0.482,0.494,0.488,0.988,TCU
-East,St. John's,5,Northern Iowa,12,0.842,0.695,0.768,0.854,St. John's
-East,Kansas,4,Cal Baptist,13,0.917,0.889,0.903,0.972,Kansas
-East,Louisville,6,South Florida,11,0.711,0.565,0.638,0.854,Louisville
-East,Michigan State,3,North Dakota State,14,0.966,0.953,0.96,0.987,Michigan State
-East,UCLA,7,UCF,10,0.745,0.641,0.693,0.896,UCLA
-East,Connecticut,2,Furman,15,0.985,0.962,0.974,0.977,Connecticut
-West,Arizona,1,LIU Brooklyn,16,0.984,0.995,0.989,0.989,Arizona
-West,Villanova,8,Utah State,9,0.192,0.449,0.269,0.743,Utah State
-West,Wisconsin,5,High Point,12,0.653,0.766,0.71,0.887,Wisconsin
-West,Arkansas,4,Hawaii,13,0.952,0.942,0.947,0.989,Arkansas
-West,BYU,6,Texas,11,0.515,0.691,0.585,0.824,BYU
-West,Gonzaga,3,Kennesaw State,14,0.988,0.936,0.962,0.948,Gonzaga
-West,Miami FL,7,Missouri,10,0.666,0.783,0.725,0.883,Miami FL
-West,Purdue,2,Queens,15,0.969,0.959,0.964,0.99,Purdue
-South,Florida,1,Prairie View A&M,16,0.993,0.99,0.992,0.997,Florida
-South,Clemson,8,Iowa,9,0.288,0.497,0.372,0.79,Iowa
-South,Vanderbilt,5,McNeese State,12,0.787,0.604,0.714,0.817,Vanderbilt
-South,Nebraska,4,Troy,13,0.904,0.936,0.92,0.968,Nebraska
-South,North Carolina,6,VCU,11,0.947,0.86,0.904,0.912,North Carolina
-South,Illinois,3,Penn,14,0.963,0.934,0.949,0.971,Illinois
-South,Saint Mary's,7,Texas A&M,10,0.244,0.564,0.34,0.68,Texas A&M
-South,Houston,2,Idaho,15,0.963,0.982,0.972,0.981,Houston
-Midwest,Michigan,1,UMBC,16,0.984,0.992,0.988,0.992,Michigan
-Midwest,Georgia,8,Saint Louis,9,0.279,0.488,0.363,0.791,Saint Louis
-Midwest,Texas Tech,5,Akron,12,0.92,0.85,0.885,0.93,Texas Tech
-Midwest,Alabama,4,Hofstra,13,0.789,0.898,0.843,0.891,Alabama
-Midwest,Tennessee,6,Miami OH,11,0.814,0.818,0.816,0.995,Tennessee
-Midwest,Virginia,3,Wright State,14,0.853,0.688,0.787,0.836,Virginia
-Midwest,Kentucky,7,Santa Clara,10,0.737,0.735,0.736,0.998,Kentucky
-Midwest,Iowa State,2,Tennessee State,15,0.962,0.902,0.932,0.94,Iowa State
+East,Duke,1,Siena,16,0.997,0.994,0.996,0.997,Duke
+East,Ohio State,8,TCU,9,0.523,0.379,0.462,0.856,TCU
+East,St. John's,5,Northern Iowa,12,0.956,0.803,0.919,0.847,St. John's
+East,Kansas,4,Cal Baptist,13,0.916,0.898,0.91,0.981,Kansas
+East,Louisville,6,South Florida,11,0.827,0.84,0.832,0.988,Louisville
+East,Michigan State,3,North Dakota State,14,0.992,0.858,0.958,0.866,Michigan State
+East,UCLA,7,UCF,10,0.672,0.643,0.663,0.97,UCLA
+East,Connecticut,2,Furman,15,0.994,0.909,0.97,0.915,Connecticut
+West,Arizona,1,LIU Brooklyn,16,0.996,0.983,0.992,0.987,Arizona
+West,Villanova,8,Utah State,9,0.241,0.41,0.28,0.831,Utah State
+West,Wisconsin,5,High Point,12,0.881,0.852,0.872,0.97,Wisconsin
+West,Arkansas,4,Hawaii,13,0.982,0.917,0.962,0.936,Arkansas
+West,BYU,6,Texas,11,0.693,0.794,0.736,0.899,BYU
+West,Gonzaga,3,Kennesaw State,14,0.994,0.912,0.971,0.917,Gonzaga
+West,Miami FL,7,Missouri,10,0.814,0.692,0.782,0.878,Miami FL
+West,Purdue,2,Queens,15,0.992,0.966,0.983,0.975,Purdue
+South,Florida,1,Prairie View A&M,16,0.999,0.992,0.996,0.994,Florida
+South,Clemson,8,Iowa,9,0.659,0.528,0.626,0.869,Clemson
+South,Vanderbilt,5,McNeese State,12,0.903,0.639,0.852,0.736,Vanderbilt
+South,Nebraska,4,Troy,13,0.988,0.817,0.948,0.83,Nebraska
+South,North Carolina,6,VCU,11,0.74,0.802,0.765,0.938,North Carolina
+South,Illinois,3,Penn,14,0.992,0.955,0.98,0.963,Illinois
+South,Saint Mary's,7,Texas A&M,10,0.824,0.702,0.793,0.878,Saint Mary's
+South,Houston,2,Idaho,15,0.991,0.974,0.985,0.983,Houston
+Midwest,Michigan,1,UMBC,16,0.992,0.985,0.99,0.993,Michigan
+Midwest,Georgia,8,Saint Louis,9,0.382,0.489,0.411,0.893,Saint Louis
+Midwest,Texas Tech,5,Akron,12,0.928,0.878,0.912,0.95,Texas Tech
+Midwest,Alabama,4,Hofstra,13,0.926,0.634,0.872,0.708,Alabama
+Midwest,Tennessee,6,Miami OH,11,0.908,0.835,0.887,0.927,Tennessee
+Midwest,Virginia,3,Wright State,14,0.991,0.953,0.979,0.962,Virginia
+Midwest,Kentucky,7,Santa Clara,10,0.623,0.628,0.625,0.995,Kentucky
+Midwest,Iowa State,2,Tennessee State,15,0.993,0.974,0.987,0.981,Iowa State

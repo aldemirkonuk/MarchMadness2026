@@ -13,7 +13,7 @@ import time
 import numpy as np
 from collections import defaultdict
 
-from src.data_loader import load_all_teams, load_matchups, load_historical_games
+from src.data_loader import load_all_teams, load_matchups, load_historical_games, build_season_h2h
 from src.composite import (
     compute_team_strengths, rank_teams,
     compute_all_matchup_probabilities, generate_pros_cons,
@@ -51,12 +51,25 @@ def main():
     for i, t in enumerate(ranked[:25], 1):
         print(f"  {i:<6}{t.seed:<6}{t.name:<25}{t.team_strength:>10.4f}{t.adj_em:>8.1f}{t.net_rating:>5d}{t.barthag:>7.3f}{t.ppg:>6.1f}{t.eff_height:>6.2f}  {t.region}")
 
+    # ── Step 3b: P&R Proxy Metrics ───────────────────────────────────
+    try:
+        from src.player_matchup import load_player_data, compute_pnr_metrics
+        _player_df = load_player_data()
+        if not _player_df.empty:
+            compute_pnr_metrics(teams, _player_df)
+            pnr_teams = [(t.name, t.big_man_offense, t.rim_defense_bpr)
+                         for t in teams if t.big_man_offense > 0 or t.rim_defense_bpr > 0]
+            print(f"  P&R proxy metrics computed for {len(pnr_teams)} teams")
+    except Exception:
+        pass
+
     # ── Step 4: Cinderella Detection ──────────────────────────────────
     print(f"\n{cinderella_report(teams)}")
 
     # ── Step 5: Matchup Analysis ──────────────────────────────────────
     print("\n[4/7] Loading matchups and computing win probabilities...")
-    matchups = load_matchups(teams)
+    h2h_lookup = build_season_h2h()
+    matchups = load_matchups(teams, h2h_lookup)
     matchups = compute_all_matchup_probabilities(matchups)
 
     # Generate pros/cons
@@ -82,30 +95,11 @@ def main():
     print(f"\n[7/7] Running Monte Carlo simulation ({n_sims:,} tournaments)...")
     start = time.time()
 
-    # Phase 1A Monte Carlo
-    result_1a = simulate_tournament(teams, n_simulations=n_sims // 2,
-                                     seed=42, show_progress=True)
-
-    # Phase 1B Monte Carlo (using cached XGBoost probabilities)
-    prob_func_1b = None
-    if xgb_model is not None:
-        from src.xgboost_model import predict_matchup
-        _xgb_cache = {}
-
-        def _cached_xgb_prob(a, b):
-            key = (a.name, b.name)
-            if key not in _xgb_cache:
-                _xgb_cache[key] = predict_matchup(xgb_model, a, b)
-            return _xgb_cache[key]
-
-        prob_func_1b = _cached_xgb_prob
-
-    result_1b = simulate_tournament(teams, n_simulations=n_sims // 2,
-                                     prob_func=prob_func_1b,
-                                     seed=123, show_progress=True)
-
-    # Ensemble Monte Carlo
-    result_ensemble = _merge_results(result_1a, result_1b)
+    # Build ensemble prob_func: blends 1A + 1B per matchup using calibrated lambda
+    ensemble_prob_func = _build_ensemble_prob_func(xgb_model, h2h_lookup)
+    result_ensemble = simulate_tournament(teams, n_simulations=n_sims,
+                                           prob_func=ensemble_prob_func,
+                                           seed=42, show_progress=True)
 
     elapsed = time.time() - start
     print(f"  Completed in {elapsed:.1f}s")
@@ -188,30 +182,83 @@ def _run_phase_1b(teams, matchups):
         return None
 
 
-def _merge_results(r1, r2):
-    """Merge two SimulationResult objects (ensemble)."""
-    from src.models import SimulationResult
+def _build_ensemble_prob_func(xgb_model, h2h_lookup):
+    """Build a probability function that blends 1A + 1B per matchup.
 
-    merged = SimulationResult()
-    merged.n_simulations = r1.n_simulations + r2.n_simulations
+    This replaces the old dual-simulation approach: instead of running
+    separate 1A and 1B MC simulations and merging counts 50/50, we
+    run a single simulation where each game uses the sigmoid-blended
+    ensemble probability (calibrated lambda=0.65).
+    """
+    from src.equations import (
+        composite_score_differential, win_probability_logistic,
+    )
+    from src.ensemble import _sigmoid
 
-    merged.champion_counts = defaultdict(int)
-    merged.final_four_counts = defaultdict(int)
-    merged.elite_eight_counts = defaultdict(int)
-    merged.sweet_sixteen_counts = defaultdict(int)
-    merged.round_of_32_counts = defaultdict(int)
+    _cache = {}
 
-    for d_merged, d1, d2 in [
-        (merged.champion_counts, r1.champion_counts, r2.champion_counts),
-        (merged.final_four_counts, r1.final_four_counts, r2.final_four_counts),
-        (merged.elite_eight_counts, r1.elite_eight_counts, r2.elite_eight_counts),
-        (merged.sweet_sixteen_counts, r1.sweet_sixteen_counts, r2.sweet_sixteen_counts),
-        (merged.round_of_32_counts, r1.round_of_32_counts, r2.round_of_32_counts),
-    ]:
-        for team in set(list(d1.keys()) + list(d2.keys())):
-            d_merged[team] = d1.get(team, 0) + d2.get(team, 0)
+    def prob_func(team_a, team_b):
+        key = (team_a.name, team_b.name)
+        if key in _cache:
+            return _cache[key]
 
-    return merged
+        # Phase 1A: composite + logistic + scoring_margin_std volatility
+        z = composite_score_differential(
+            team_a.normalized_params,
+            team_b.normalized_params,
+            CORE_WEIGHTS,
+        )
+
+        # H2H season tiebreaker
+        h2h_margin = h2h_lookup.get((team_a.name, team_b.name), 0.0)
+        if h2h_margin != 0.0:
+            z += np.clip(h2h_margin / 30.0, -0.05, 0.05) * 0.5
+
+        # P&R tactical counter: only penalize teams that actually rely on
+        # big-man P&R offense (BMO >= 5.0) when facing strong rim defense.
+        # Guard-driven teams (low BMO) are unaffected.
+        bmo_a = getattr(team_a, "big_man_offense", 0.0)
+        bmo_b = getattr(team_b, "big_man_offense", 0.0)
+        rd_a = getattr(team_a, "rim_defense_bpr", 0.0)
+        rd_b = getattr(team_b, "rim_defense_bpr", 0.0)
+        pnr_a_countered = max(0.0, rd_b - bmo_a) if bmo_a >= 5.0 else 0.0
+        pnr_b_countered = max(0.0, rd_a - bmo_b) if bmo_b >= 5.0 else 0.0
+        pnr_net = (pnr_b_countered - pnr_a_countered) * 0.015
+        z += np.clip(pnr_net, -0.025, 0.025)
+
+        p_1a = win_probability_logistic(z, k=14.0)
+
+        # scoring_margin_std volatility (sole volatility layer)
+        std_a = getattr(team_a, "scoring_margin_std", 0)
+        std_b = getattr(team_b, "scoring_margin_std", 0)
+        combined_vol = (std_a + std_b) / 2.0
+        if combined_vol > 12.0:
+            vol_pull = min(0.06, (combined_vol - 12.0) * 0.01)
+            p_1a = p_1a * (1.0 - vol_pull) + 0.5 * vol_pull
+
+        # Phase 1B: XGBoost
+        if xgb_model is not None:
+            try:
+                from src.xgboost_model import predict_matchup
+                p_1b = predict_matchup(xgb_model, team_a, team_b)
+            except Exception:
+                p_1b = p_1a
+        else:
+            p_1b = p_1a
+
+        # Sigmoid-weighted ensemble blend (same as ensemble.py)
+        conf_1a = abs(p_1a - 0.5)
+        conf_1b = abs(p_1b - 0.5)
+        conf_diff = conf_1a - conf_1b
+        shift = 0.20 * (2.0 * _sigmoid(conf_diff, scale=8.0) - 1.0)
+        lam = np.clip(ENSEMBLE_LAMBDA + shift, 0.20, 0.85)
+        p_ens = lam * p_1a + (1.0 - lam) * p_1b
+
+        _cache[key] = p_ens
+        _cache[(team_b.name, team_a.name)] = 1.0 - p_ens
+        return p_ens
+
+    return prob_func
 
 
 def _print_matchup_predictions(matchups):

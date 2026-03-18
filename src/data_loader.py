@@ -56,17 +56,115 @@ def _build_coach_results() -> Dict[str, dict]:
     return results
 
 
-def _build_team_legacy() -> Dict[str, float]:
-    """Historical seed outperformance from archive-3 Team Results."""
-    df = _load_csv(ARCHIVE3, "Team Results.csv")
-    if df is None:
+def _build_team_legacy(current_year: int = 2026) -> Dict[str, float]:
+    """Seed-normalized, decay-weighted PASE from Tournament Matchups.
+
+    Three corrections over the old raw-PASE approach:
+      1. Difficulty coefficient: normalize outperformance by the max possible
+         for that seed so 1-seeds aren't structurally penalized.
+      2. Coaching decay: 0.85^(years_ago) so stale runs fade.
+      3. sqrt(N) normalization + cap [-3, +3].
+    """
+    from math import sqrt
+
+    ROUND_TO_WINS = {64: 0, 32: 1, 16: 2, 8: 3, 4: 4, 2: 5, 1: 6}
+
+    tm = _load_csv(ARCHIVE3, "Tournament Matchups.csv")
+    if tm is None:
         return {}
-    legacy = {}
+
+    cols = ["YEAR", "TEAM", "SEED", "ROUND"]
+    df = tm[cols].dropna().copy()
+    df["YEAR"] = df["YEAR"].astype(int)
+    df["SEED"] = df["SEED"].astype(int)
+    df["ROUND"] = df["ROUND"].astype(int)
+
+    # Keep deepest round per (team, year) — smallest ROUND value = deepest.
+    df = (
+        df.sort_values(["YEAR", "TEAM", "ROUND"])
+        .groupby(["YEAR", "TEAM"], as_index=False)
+        .first()
+    )
+
+    team_appearances: Dict[str, list] = {}
     for _, row in df.iterrows():
-        team = canonical_name(str(row["TEAM"]).strip())
-        pase = safe_float(row.get("PASE", 0))
-        legacy[team] = pase
+        year = int(row["YEAR"])
+        seed = int(row["SEED"])
+        actual_wins = ROUND_TO_WINS.get(int(row["ROUND"]), 0)
+        expected = SEED_EXPECTED_ROUND.get(seed, 0.0)
+        max_pase = 6.0 - expected
+        if max_pase < 0.5:
+            max_pase = 0.5
+
+        normalized_outperf = (actual_wins - expected) / max_pase
+        decay = 0.85 ** max(0, current_year - year)
+
+        team_name = canonical_name(str(row["TEAM"]).strip())
+        team_appearances.setdefault(team_name, []).append(
+            (normalized_outperf, decay)
+        )
+
+    legacy: Dict[str, float] = {}
+    for team, appearances in team_appearances.items():
+        n = len(appearances)
+        if n == 0:
+            legacy[team] = 0.0
+            continue
+        weighted_sum = sum(outperf * decay for outperf, decay in appearances)
+        weight_total = sum(decay for _, decay in appearances)
+        if weight_total > 0:
+            weighted_avg = weighted_sum / weight_total
+        else:
+            weighted_avg = 0.0
+        pase = weighted_avg * sqrt(n)
+        legacy[team] = max(-3.0, min(3.0, pase))
+
     return legacy
+
+
+def build_season_h2h() -> Dict[tuple, float]:
+    """Build head-to-head season results from game logs.
+
+    Returns {(canonical_a, canonical_b): avg_margin_for_a} for every
+    pair of tournament-eligible teams that met this season.  The margin
+    is signed: positive means team_a won by that many points on average.
+    """
+    import glob as _glob
+    logs_dir = os.path.join(ARCHIVE3, "game-logs")
+    if not os.path.isdir(logs_dir):
+        return {}
+
+    raw: Dict[tuple, list] = {}
+    for fpath in _glob.glob(os.path.join(logs_dir, "*.csv")):
+        try:
+            df = pd.read_csv(fpath)
+        except Exception:
+            continue
+        if df.empty:
+            continue
+        team = canonical_name(str(df.iloc[0]["team"]).strip())
+        for _, row in df.iterrows():
+            opp = canonical_name(str(row["opponent"]).strip())
+            try:
+                margin = float(row["score_t"]) - float(row["score_o"])
+            except (ValueError, TypeError, KeyError):
+                continue
+            raw.setdefault((team, opp), []).append(margin)
+
+    h2h: Dict[tuple, float] = {}
+    seen = set()
+    for (a, b), margins in raw.items():
+        pair = tuple(sorted([a, b]))
+        if pair in seen:
+            continue
+        seen.add(pair)
+        rev = raw.get((b, a), [])
+        all_margins = margins + [-m for m in rev]
+        if all_margins:
+            avg = sum(all_margins) / len(all_margins)
+            h2h[(a, b)] = avg
+            h2h[(b, a)] = -avg
+    return h2h
 
 
 def _build_resume_data() -> Dict[str, dict]:
@@ -475,7 +573,7 @@ def load_all_teams() -> List[Team]:
 
         # Top-50 performance from Resumes
         res = resumes.get(name, {})
-        t.top50_perf = res.get("top50_win_pct", 0.5)
+        t.top25_perf = res.get("top50_win_pct", 0.5)
 
         # Tier 2
         t.ast_pct = safe_float(row.get("AST%", 0)) / 100
@@ -501,14 +599,13 @@ def load_all_teams() -> List[Team]:
         # AdjEM rank
         t.adj_em_rank = int(safe_float(row.get("KADJ EM RANK", 50)))
 
-        # Coaching Factor
+        # Coaching Factor (Bayesian-smoothed; real coach tournament record)
         coach_name = coach_map.get(name, "")
         cr = coach_results.get(coach_name, {})
         t.ctf = coaching_factor(cr.get("wins", 0), cr.get("games", 0))
 
-        # Legacy Factor (winsorized to [-3, +5] to tame outliers)
-        raw_legacy = team_legacy.get(name, 0.0)
-        t.legacy_factor = max(-3.0, min(5.0, raw_legacy))
+        # Legacy Factor (reformed PASE: difficulty-normalized, decay-weighted, capped [-3, +3])
+        t.legacy_factor = team_legacy.get(name, 0.0)
 
         # EvanMiya: killshots + real runs_margin for MSRP
         em = evan_miya.get(name, {})
@@ -562,7 +659,7 @@ def load_all_teams() -> List[Team]:
         q1a_w = ts.get("q1a_wins", 0)
         q1a_l = ts.get("q1a_losses", 0)
         if q1a_w + q1a_l > 0:
-            t.top50_perf = max(t.top50_perf, q1a_w / (q1a_w + q1a_l))
+            t.top25_perf = max(t.top25_perf, q1a_w / (q1a_w + q1a_l))
 
         # Real quadrant records (replace fake AdjEM-derived Q1/Q3)
         t.q1_record = ts.get("q1_record", 0.0)
@@ -779,9 +876,12 @@ def _compute_ranks(teams: List[Team]) -> None:
         t.adj_em_rank = rank
 
 
-def load_matchups(teams: List[Team]) -> List:
+def load_matchups(teams: List[Team], h2h_lookup: Dict[tuple, float] = None) -> List:
     """Load Round of 64 matchups from CSV."""
     from src.models import Matchup
+
+    if h2h_lookup is None:
+        h2h_lookup = build_season_h2h()
 
     df = pd.read_csv(os.path.join(DATA_DIR, "matchups.csv"))
     team_dict = {t.name: t for t in teams}
@@ -815,12 +915,14 @@ def load_matchups(teams: List[Team]) -> List:
             print(f"WARNING: Could not find teams for {name_a} vs {name_b}")
             continue
 
-        matchups.append(Matchup(
+        m = Matchup(
             team_a=ta,
             team_b=tb,
             round_name="R64",
             region=str(row["region"]),
-        ))
+        )
+        m.h2h_season_edge = h2h_lookup.get((ta.name, tb.name), 0.0)
+        matchups.append(m)
 
     return matchups
 

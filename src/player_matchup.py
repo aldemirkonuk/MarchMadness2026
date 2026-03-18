@@ -1,11 +1,12 @@
 """Player matchup sandbox -- team-level player impact parameters.
 
 Computes 7 core player-based parameters, 1 style_clash parameter,
-and 4 matchup flags from EvanMiya player BPR data.
+P&R tactical counter metrics, and 5 matchup flags from EvanMiya
+player BPR data.
 
-This module is a SANDBOX -- parameters are computed and displayed
-but NOT integrated into the weighted model. Integration happens
-only after manual review confirms value.
+The P&R proxy (big_man_offense, rim_defense_bpr) IS integrated into
+the ensemble prob_func as a small z-adjustment. All other sandbox
+params remain display-only until manual review confirms value.
 """
 
 import numpy as np
@@ -35,6 +36,36 @@ def load_player_data() -> pd.DataFrame:
     }
     df["team"] = df["team"].replace(name_map)
     return df
+
+
+def compute_pnr_metrics(teams: list, player_df: pd.DataFrame) -> None:
+    """Populate big_man_offense and rim_defense_bpr on each Team object.
+
+    Heuristic for identifying "bigs": among the top 8 BPR players on a team,
+    those with DBPR > OBPR and DBPR > 3.0 are classified as defensive bigs
+    (rim protectors / roll men).  We take the top-2 by DBPR.
+
+    big_man_offense = sum of OBPR for top-2 bigs (how much offense comes
+                      from big-man actions like P&R rolls)
+    rim_defense_bpr = sum of DBPR for top-2 bigs (rim protection quality
+                      beyond the team-level rpi_rim stat)
+    """
+    for team in teams:
+        players = player_df[player_df["team"] == team.name].nlargest(8, "bpr")
+        if players.empty:
+            team.big_man_offense = 0.0
+            team.rim_defense_bpr = 0.0
+            continue
+
+        bigs = players[(players["dbpr"] > players["obpr"]) & (players["dbpr"] > 3.0)]
+        bigs = bigs.nlargest(2, "dbpr")
+
+        if bigs.empty:
+            team.big_man_offense = 0.0
+            team.rim_defense_bpr = 0.0
+        else:
+            team.big_man_offense = float(bigs["obpr"].sum())
+            team.rim_defense_bpr = float(bigs["dbpr"].sum())
 
 
 def compute_player_matchup_params(team_a: Team, team_b: Team,
@@ -203,6 +234,24 @@ def compute_matchup_flags(team_a: Team, team_b: Team,
             f"(OBPR={fav_best_scorer['obpr']:.1f})"
         )
 
+    # Flag 5: P&R hard counter -- team's big-man offense vs opponent rim defense
+    bmo_a = getattr(team_a, "big_man_offense", 0.0)
+    bmo_b = getattr(team_b, "big_man_offense", 0.0)
+    rd_a = getattr(team_a, "rim_defense_bpr", 0.0)
+    rd_b = getattr(team_b, "rim_defense_bpr", 0.0)
+    if bmo_a > 5.0 and rd_b > 8.0:
+        flags.append(
+            f"FLAG-5: P&R HARD COUNTER -- {team_a.name}'s big-man offense "
+            f"(OBPR sum={bmo_a:.1f}) vs {team_b.name}'s rim defense "
+            f"(DBPR sum={rd_b:.1f}). Primary engine may be neutralized."
+        )
+    if bmo_b > 5.0 and rd_a > 8.0:
+        flags.append(
+            f"FLAG-5: P&R HARD COUNTER -- {team_b.name}'s big-man offense "
+            f"(OBPR sum={bmo_b:.1f}) vs {team_a.name}'s rim defense "
+            f"(DBPR sum={rd_a:.1f}). Primary engine may be neutralized."
+        )
+
     return flags
 
 
@@ -214,8 +263,8 @@ def player_matchup_report(matchups, teams: List[Team]) -> str:
 
     lines = [
         "=" * 70,
-        "  PLAYER MATCHUP SANDBOX (8 params + style_clash + flags)",
-        "  NOTE: This is a SANDBOX -- not integrated into model weights.",
+        "  PLAYER MATCHUP SANDBOX (8 params + style_clash + P&R + flags)",
+        "  NOTE: P&R metrics integrated into ensemble; other params display-only.",
         "=" * 70,
         "",
     ]

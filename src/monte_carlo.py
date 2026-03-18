@@ -10,7 +10,7 @@ from collections import defaultdict
 from tqdm import tqdm
 
 from src.models import Team, Matchup, SimulationResult
-from src.equations import win_probability_logistic, upset_volatility
+from src.equations import win_probability_logistic
 from src.weights import CORE_WEIGHTS, LOGISTIC_K
 
 
@@ -29,8 +29,7 @@ def _get_win_prob(team_a: Team, team_b: Team,
                   prob_func: Optional[Callable] = None) -> float:
     """Compute win probability for team_a vs team_b.
 
-    Incorporates team-specific volatility from scoring_margin_std:
-    higher variance teams have probabilities pulled toward 0.5.
+    Uses scoring_margin_std as the sole volatility layer (WTH disabled).
     """
     if prob_func is not None:
         return prob_func(team_a, team_b)
@@ -42,10 +41,6 @@ def _get_win_prob(team_a: Team, team_b: Team,
         CORE_WEIGHTS,
     )
     p = win_probability_logistic(z, k=LOGISTIC_K)
-    p = upset_volatility(
-        p, team_a.chaos_index, team_b.chaos_index,
-        pace_diff_norm=abs(team_a.pace - team_b.pace) / 20.0,
-    )
 
     # Volatility adjustment from scoring_margin_std:
     # high-variance favorites get pulled toward 0.5 (less reliable)

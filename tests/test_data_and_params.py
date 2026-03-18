@@ -92,7 +92,7 @@ DATASET_SOURCES = {
                                  "opp_to_pct", "ast_pct", "exp", "pace", "blk_pct",
                                  "three_p_pct", "ft_pct", "seed_score", "barthag", "ppg",
                                  "2PT%", "2PTR", "EFF HGT (-> eff_height in meters)"],
-    "Resumes.csv":             ["top50_perf"],
+    "Resumes.csv":             ["top25_perf"],
     "Coach Results.csv":       ["ctf"],
     "Team Results.csv":        ["legacy_factor (winsorized [-3,+5])"],
     "EvanMiya.csv":            ["msrp", "killshots_per_game", "injury_rank", "roster_rank"],
@@ -172,12 +172,12 @@ def test_coaching_factor():
     print(f"  PASS: CTF values - MSU(Izzo)={msu.ctf:.3f}, Duke(Scheyer)={duke.ctf:.3f}")
 
 
-def test_top50_performance():
+def test_top25_performance():
     """1-seeds should generally have high Top-50 win%."""
     one_seeds = [t for t in get_teams() if t.seed == 1]
     for t in one_seeds:
-        assert t.top50_perf > 0.3, f"{t.name} top50={t.top50_perf} suspiciously low for 1-seed"
-    print(f"  PASS: Top-50 performance - " + ", ".join(f"{t.name}={t.top50_perf:.3f}" for t in one_seeds))
+        assert t.top25_perf > 0.3, f"{t.name} top50={t.top25_perf} suspiciously low for 1-seed"
+    print(f"  PASS: Top-50 performance - " + ", ".join(f"{t.name}={t.top25_perf:.3f}" for t in one_seeds))
 
 
 def test_no_nan_in_core_params():
@@ -369,7 +369,7 @@ if __name__ == "__main__":
         ("Param: eFG% range", test_efg_pct_range),
         ("Param: Seed score", test_seed_score),
         ("Param: Coaching factor", test_coaching_factor),
-        ("Param: Top-50 performance", test_top50_performance),
+        ("Param: Top-50 performance", test_top25_performance),
         ("Param: No NaN in core", test_no_nan_in_core_params),
         ("Param: Experience range", test_experience_range),
         ("Norm: Weights sum to 1", test_weights_sum_to_one),

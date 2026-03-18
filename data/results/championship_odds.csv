@@ -1,49 +1,36 @@
 team,championship_pct,final_four_pct,elite_eight_pct
-Michigan,32.21,72.62,72.62
-Florida,19.05,65.42,65.42
-Duke,18.54,60.6,60.6
-Gonzaga,9.27,41.87,41.87
-Houston,6.16,22.7,22.7
-Arizona,3.32,21.76,21.76
-Connecticut,3.13,21.6,21.6
-Arkansas,2.24,19.76,19.76
-Michigan State,1.51,11.93,11.93
-Iowa State,1.18,11.67,11.67
-Purdue,1.06,12.85,12.85
-Illinois,0.43,4.62,4.62
-Texas Tech,0.42,5.04,5.04
-Tennessee,0.35,4.69,4.69
-Kansas,0.19,2.44,2.44
-North Carolina,0.18,2.67,2.67
-Alabama,0.16,1.85,1.85
-St. John's,0.09,1.4,1.4
-Virginia,0.09,1.59,1.59
-Nebraska,0.08,1.61,1.61
-Vanderbilt,0.06,1.75,1.75
-Wisconsin,0.05,1.26,1.26
-BYU,0.05,1.34,1.34
-UCLA,0.04,0.87,0.87
-Miami FL,0.03,0.64,0.64
-Kentucky,0.03,1.27,1.27
-McNeese State,0.02,0.42,0.42
-Saint Mary's,0.01,0.23,0.23
-Northern Iowa,0.01,0.31,0.31
-Louisville,0.01,0.28,0.28
-Wright State,0.01,0.13,0.13
-Saint Louis,0.01,0.66,0.66
-Georgia,0.0,0.24,0.24
-Clemson,0.0,0.15,0.15
-Hofstra,0.0,0.06,0.06
-Ohio State,0.0,0.13,0.13
-UCF,0.0,0.13,0.13
-Iowa,0.0,0.18,0.18
-Villanova,0.0,0.16,0.16
-Kennesaw State,0.0,0.03,0.03
-Akron,0.0,0.06,0.06
-Santa Clara,0.0,0.09,0.09
-TCU,0.0,0.1,0.1
-Texas A&M,0.0,0.18,0.18
-High Point,0.0,0.12,0.12
-South Florida,0.0,0.1,0.1
-Idaho,0.0,0.02,0.02
-Troy,0.0,0.02,0.02
+Duke,34.93,74.66,74.66
+Michigan,31.85,73.94,73.94
+Arizona,16.12,65.08,65.08
+Florida,7.42,51.55,51.55
+Illinois,2.1,24.77,24.77
+Gonzaga,1.82,18.63,18.63
+Iowa State,1.04,10.87,10.87
+Michigan State,0.86,9.41,9.41
+Connecticut,0.85,10.95,10.95
+Virginia,0.84,9.3,9.3
+Purdue,0.76,10.77,10.77
+Houston,0.64,12.33,12.33
+Nebraska,0.17,4.94,4.94
+St. John's,0.12,3.08,3.08
+Arkansas,0.1,3.34,3.34
+Vanderbilt,0.1,3.5,3.5
+Tennessee,0.09,2.26,2.26
+Texas Tech,0.05,2.18,2.18
+Saint Mary's,0.04,1.81,1.81
+Louisville,0.01,0.95,0.95
+Kansas,0.01,0.53,0.53
+Wisconsin,0.01,0.72,0.72
+Miami FL,0.01,0.72,0.72
+BYU,0.01,0.45,0.45
+North Carolina,0.01,0.71,0.71
+Saint Louis,0.01,0.46,0.46
+Alabama,0.0,0.56,0.56
+Georgia,0.0,0.18,0.18
+Kentucky,0.0,0.19,0.19
+Ohio State,0.0,0.08,0.08
+Texas A&M,0.0,0.04,0.04
+Utah State,0.0,0.25,0.25
+Clemson,0.0,0.23,0.23
+TCU,0.0,0.07,0.07
+UCLA,0.0,0.22,0.22

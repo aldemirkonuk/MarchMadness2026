@@ -144,7 +144,7 @@ def seed_score(seed: int) -> float:
 
 
 # ── Equation 23: Top-50 Performance ──────────────────────────────────────────
-def top50_performance(wins_vs_top50: int, games_vs_top50: int) -> float:
+def top25_performance(wins_vs_top50: int, games_vs_top50: int) -> float:
     return wins_vs_top50 / games_vs_top50 if games_vs_top50 > 0 else 0.0
 
 

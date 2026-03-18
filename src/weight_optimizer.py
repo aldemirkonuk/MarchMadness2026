@@ -10,7 +10,9 @@ from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
 import time
 
-from src.weights import CORE_WEIGHTS, INVERTED_PARAMS, Z_SCORE_PARAMS, LOGISTIC_K
+from src.weights import (CORE_WEIGHTS, INVERTED_PARAMS, Z_SCORE_PARAMS,
+                         LOGISTIC_K, TEMPORAL_SCHEME)
+from src.utils import SEED_EXPECTED_ROUND
 
 
 # ── Historical data helpers ──────────────────────────────────────────────────
@@ -24,31 +26,83 @@ def _safe(val, default=0.0):
         return default
 
 
-def _load_historical_lookups():
-    """Load Team Results and Coach Results for CTF/legacy proxies (cached)."""
-    if hasattr(_load_historical_lookups, "_cache"):
-        return _load_historical_lookups._cache
+ROUND_TO_TOURNEY_WINS = {
+    64: 0,
+    32: 1,
+    16: 2,
+    8: 3,
+    4: 4,
+    2: 5,
+    1: 6,
+}
 
+
+def _load_historical_legacy_priors():
+    """Build year-safe team legacy priors using reformed PASE.
+
+    For team T in year Y, uses only appearances strictly before Y.
+    Applies the same 3 corrections as data_loader._build_team_legacy():
+      1. Difficulty coefficient (normalize by max possible PASE for that seed)
+      2. Coaching decay (0.85^years_ago, relative to evaluation year Y)
+      3. sqrt(N) normalization + cap [-3, +3]
+    """
+    if hasattr(_load_historical_legacy_priors, "_cache"):
+        return _load_historical_legacy_priors._cache
+
+    from math import sqrt
     import os
     base = os.path.join(os.path.dirname(__file__), "..", "archive-3")
 
-    # Team Results -> legacy_factor (PASE) and ctf (tourney W/L)
-    team_ctf = {}
-    team_pase = {}
+    priors = {}
+    # history[team] = list of (year, normalized_outperformance)
+    history = defaultdict(list)
     try:
-        tr = pd.read_csv(os.path.join(base, "Team Results.csv"))
-        for _, row in tr.iterrows():
-            tname = str(row.get("TEAM", "")).strip()
-            games = _safe(row.get("GAMES", 0))
-            wins = _safe(row.get("W", 0))
-            pase = _safe(row.get("PASE", 0))
-            team_ctf[tname] = (wins + 2) / (games + 4) if games > 0 else 0.5
-            team_pase[tname] = max(-3.0, min(5.0, pase))
+        tm = pd.read_csv(os.path.join(base, "Tournament Matchups.csv"))
+        cols = ["YEAR", "TEAM", "SEED", "ROUND"]
+        team_years = tm[cols].dropna().copy()
+        team_years["YEAR"] = team_years["YEAR"].astype(int)
+        team_years["SEED"] = team_years["SEED"].astype(int)
+        team_years["ROUND"] = team_years["ROUND"].astype(int)
+
+        team_years = (
+            team_years.sort_values(["YEAR", "TEAM", "ROUND"])
+            .groupby(["YEAR", "TEAM"], as_index=False)
+            .first()
+            .sort_values(["YEAR", "TEAM"])
+        )
+
+        for _, row in team_years.iterrows():
+            year = int(row["YEAR"])
+            team = str(row["TEAM"]).strip()
+            seed = int(row["SEED"])
+
+            # Compute prior for this (team, year) using only appearances BEFORE year
+            past = history[team]
+            if past:
+                n = len(past)
+                weight_total = sum(0.85 ** max(0, year - y) for y, _ in past)
+                weighted_sum = sum(
+                    outperf * 0.85 ** max(0, year - y) for y, outperf in past
+                )
+                weighted_avg = weighted_sum / weight_total if weight_total > 0 else 0.0
+                pase = weighted_avg * sqrt(n)
+                priors[(team, year)] = max(-3.0, min(3.0, pase))
+            else:
+                priors[(team, year)] = 0.0
+
+            # Record this year's result for future years
+            actual = ROUND_TO_TOURNEY_WINS.get(int(row["ROUND"]), 0)
+            expected = SEED_EXPECTED_ROUND.get(seed, 0.0)
+            max_pase = 6.0 - expected
+            if max_pase < 0.5:
+                max_pase = 0.5
+            normalized_outperf = (actual - expected) / max_pase
+            history[team].append((year, normalized_outperf))
     except Exception:
         pass
 
-    _load_historical_lookups._cache = (team_ctf, team_pase)
-    return team_ctf, team_pase
+    _load_historical_legacy_priors._cache = priors
+    return priors
 
 
 def _row_to_param_dict(row, all_teams_df: pd.DataFrame = None) -> dict:
@@ -129,14 +183,18 @@ def _row_to_param_dict(row, all_teams_df: pd.DataFrame = None) -> dict:
 
     # Derived params: use real data where available, proxy otherwise
     team_name = str(row.get("TEAM", "")).strip()
-    team_ctf_lookup, team_pase_lookup = _load_historical_lookups()
+    year = int(_safe(row.get("YEAR", 0), 0))
+    team_pase_lookup = _load_historical_legacy_priors()
 
-    top50_perf = win_pct * 0.8 if sos > 30 else win_pct * 0.5
-    ctf = team_ctf_lookup.get(team_name, 0.5)
-    legacy_factor = team_pase_lookup.get(team_name, 0.0)
+    top25_perf = win_pct * 0.8 if sos > 30 else win_pct * 0.5
+    # We do not have year-safe historical coach mapping, so keep CTF neutral
+    # instead of leaking full-period tournament records into past seasons.
+    ctf = 0.5
+    legacy_factor = team_pase_lookup.get((team_name, year), 0.0)
     bds = 0.25
     momentum = 0.5 * win_pct + 0.5 * 0.5
-    consistency = 1.0 / (1.0 + abs(adj_em) * 0.02)
+    scoring_margin_std = 14.0 * (1.0 + abs(adj_em) / 30.0) ** (-0.5)
+    consistency = 15.0 / (15.0 + scoring_margin_std)
     clutch_factor = 0.35 * win_pct + 0.25 * barthag + 0.20 * consistency + 0.20 * 0.5
 
     # NET/z_rating approximations
@@ -170,7 +228,6 @@ def _row_to_param_dict(row, all_teams_df: pd.DataFrame = None) -> dict:
     q34_loss_rate = max(0, (seed - 4) / 12.0) * 0.1
 
     msrp = adj_em / 20.0
-    scoring_margin_std = 14.0 * (1.0 + abs(adj_em) / 30.0) ** (-0.5)
     blowout_resilience = (0.30 * min(max((msrp + 1) / 2.0, 0), 1) +
                           0.30 * consistency +
                           0.20 * (adj_em / 40.0) + 0.20 * bds)
@@ -185,7 +242,7 @@ def _row_to_param_dict(row, all_teams_df: pd.DataFrame = None) -> dict:
         "scoring_balance": scoring_balance,
         "orb_pct": orb,
         "seed_score": seed_score,
-        "top50_perf": top50_perf,
+        "top25_perf": top25_perf,
         "barthag": barthag,
         "ftr": ftr_combined,
         "ast_pct": ast,
@@ -271,14 +328,126 @@ def _predict_winner(norm_a: dict, norm_b: dict, weights: dict, k: float = 6.0) -
     return 1.0 / (1.0 + np.exp(-k * z))
 
 
+# ── Temporal (recency) weighting ──────────────────────────────────────────────
+
+def recency_weight(year: int, scheme: str = "uniform",
+                   param: float = 0.95,
+                   min_year: int = 2008, max_year: int = 2025) -> float:
+    """Return a positive weight for *year* under the given decay scheme.
+
+    Schemes
+    -------
+    uniform     : all years equal (weight = 1.0)
+    linear      : 2008 → 0.5, 2025 → 1.0
+    exponential : w = param^(max_year - year),  param in (0, 1]
+    step        : 1.0 for year >= cutoff (param), 0.5 otherwise
+    """
+    if scheme == "uniform":
+        return 1.0
+    if scheme == "linear":
+        span = max(max_year - min_year, 1)
+        return 0.5 + 0.5 * (year - min_year) / span
+    if scheme == "exponential":
+        return param ** (max_year - year)
+    if scheme == "step":
+        cutoff = int(param) if param > 1 else 2018
+        return 1.0 if year >= cutoff else 0.5
+    return 1.0
+
+
+def sweep_temporal_schemes(games: List[Tuple] = None,
+                           n_grid: int = 3000) -> Tuple[str, float]:
+    """Test multiple temporal weighting schemes.
+
+    For each scheme we run a quick grid search (n_grid samples) using that
+    scheme's weighted accuracy as the objective, then evaluate the resulting
+    weights on the *full* dataset with UNIFORM weighting (our real metric).
+    The scheme whose optimised weights generalise best wins.
+
+    Returns (best_scheme_name, best_param).
+    """
+    if games is None:
+        kb = pd.read_csv("archive-3/KenPom Barttorvik.csv")
+        tm = pd.read_csv("archive-3/Tournament Matchups.csv")
+        games = _build_eval_games(kb, tm)
+
+    param_keys = list(CORE_WEIGHTS.keys())
+    years = sorted({g[3] for g in games})
+
+    schemes = [
+        ("uniform",      1.0),
+        ("linear",       1.0),
+        ("exponential",  0.90),
+        ("exponential",  0.92),
+        ("exponential",  0.94),
+        ("exponential",  0.95),
+        ("exponential",  0.96),
+        ("exponential",  0.97),
+        ("exponential",  0.98),
+        ("step",         2016),
+        ("step",         2018),
+        ("step",         2020),
+    ]
+
+    print(f"\n{'='*70}")
+    print("  TEMPORAL WEIGHTING SWEEP")
+    print(f"{'='*70}")
+    print(f"  Games: {len(games)} | Years: {years[0]}-{years[-1]} | "
+          f"Schemes: {len(schemes)} | Grid per scheme: {n_grid:,}")
+
+    baseline_uniform = _evaluate_weights(CORE_WEIGHTS, games, param_keys,
+                                         temporal_scheme="uniform")
+    print(f"  Baseline (CORE_WEIGHTS, uniform): {baseline_uniform:.4f} ({baseline_uniform*100:.1f}%)")
+
+    results = []
+    rng_seed = 42
+
+    for scheme_name, scheme_param in schemes:
+        rng = np.random.default_rng(rng_seed)
+        best_weighted_acc = 0.0
+        best_w = None
+
+        for _ in range(n_grid):
+            w = _random_weight_vector(param_keys, rng)
+            acc = _evaluate_weights(w, games, param_keys,
+                                    temporal_scheme=scheme_name,
+                                    temporal_param=scheme_param)
+            if acc > best_weighted_acc:
+                best_weighted_acc = acc
+                best_w = w
+
+        if best_w is None:
+            best_w = CORE_WEIGHTS
+
+        # The real test: how do these weights perform with UNIFORM (unweighted)?
+        real_acc = _evaluate_weights(best_w, games, param_keys,
+                                     temporal_scheme="uniform")
+
+        label = f"{scheme_name}({scheme_param})"
+        delta = real_acc - baseline_uniform
+        results.append((label, scheme_name, scheme_param, real_acc, best_weighted_acc))
+        print(f"  {label:<25} uniform_acc={real_acc:.4f} ({real_acc*100:.1f}%)  "
+              f"Δ={delta*100:+.2f}%  [weighted_obj={best_weighted_acc:.4f}]")
+
+    results.sort(key=lambda x: x[3], reverse=True)
+    best = results[0]
+
+    print(f"\n  ┌─ BEST SCHEME ───────────────────────────────────────────────────┐")
+    print(f"  │  {best[0]:<25} → {best[3]*100:.1f}% uniform accuracy     │")
+    print(f"  └──────────────────────────────────────────────────────────────────┘")
+
+    return best[1], best[2]
+
+
 # ── Build historical evaluation dataset ──────────────────────────────────────
 
 def _build_eval_games(kb_df: pd.DataFrame, tm_df: pd.DataFrame,
                       start_year: int = 2008, end_year: int = 2025
-                      ) -> List[Tuple[dict, dict, int]]:
-    """Build list of (team_a_params, team_b_params, a_won) from historical data.
+                      ) -> List[Tuple[dict, dict, int, int]]:
+    """Build list of (team_a_params, team_b_params, a_won, year).
 
-    Returns raw param dicts (not normalized) so we can re-normalize per weight trial.
+    Returns raw param dicts (not normalized) so we can re-normalize per weight
+    trial.  The 4th element is the tournament year for temporal weighting.
     """
     games = []
 
@@ -327,18 +496,21 @@ def _build_eval_games(kb_df: pd.DataFrame, tm_df: pd.DataFrame,
             else:
                 a_won = 1 if score_a > score_b else 0
 
-            games.append((params_a, params_b, a_won))
+            games.append((params_a, params_b, a_won, year))
 
     return games
 
 
 def _evaluate_weights(weights: dict, games: List[Tuple],
                       param_keys: list, k: float = 6.0,
-                      use_wth: bool = False) -> float:
-    """Evaluate a weight vector: return fraction of games correctly predicted.
+                      use_wth: bool = False,
+                      temporal_scheme: str = "uniform",
+                      temporal_param: float = 0.95) -> float:
+    """Evaluate a weight vector: return temporally-weighted accuracy.
 
-    If use_wth=True, applies chaos-based upset_volatility after the logistic
-    prediction, mirroring how the real pipeline applies the WTH layer.
+    Each game's contribution is scaled by ``recency_weight(year, ...)``.
+    When ``temporal_scheme="uniform"`` (default) this reduces to the original
+    unweighted accuracy so all existing call-sites are unaffected.
     """
     if not games:
         return 0.0
@@ -350,8 +522,14 @@ def _evaluate_weights(weights: dict, games: List[Tuple],
     norm_a_list = normalized[:n_games]
     norm_b_list = normalized[n_games:]
 
-    correct = 0
-    for i, (raw_a, raw_b, a_won) in enumerate(games):
+    weighted_correct = 0.0
+    total_weight = 0.0
+
+    for i in range(n_games):
+        game = games[i]
+        raw_a, raw_b, a_won = game[0], game[1], game[2]
+        year = game[3] if len(game) > 3 else 2016
+
         prob_a = _predict_winner(norm_a_list[i], norm_b_list[i], weights, k)
 
         if use_wth:
@@ -367,11 +545,13 @@ def _evaluate_weights(weights: dict, games: List[Tuple],
             wth_v = min(max(wth_v, 0.0), 0.15)
             prob_a = prob_a * (1.0 - wth_v) + 0.5 * wth_v
 
+        w = recency_weight(year, temporal_scheme, temporal_param)
         predicted_a_wins = prob_a > 0.5
         if predicted_a_wins == bool(a_won):
-            correct += 1
+            weighted_correct += w
+        total_weight += w
 
-    return correct / n_games
+    return weighted_correct / total_weight if total_weight > 0 else 0.0
 
 
 # ── Stage 1: Random Weight Search ────────────────────────────────────────────
@@ -398,18 +578,26 @@ def _random_weight_vector(param_keys: list, rng: np.random.Generator,
 
 def stage1_grid_search(games: List[Tuple], param_keys: list,
                        n_samples: int = 10000, top_k: int = 50,
-                       seed: int = 42, use_wth: bool = False
+                       seed: int = 42, use_wth: bool = False,
+                       temporal_scheme: str = "uniform",
+                       temporal_param: float = 0.95
                        ) -> Tuple[List[Tuple[float, dict]], float]:
     """Random weight search. Returns top_k (accuracy, weights) pairs and baseline accuracy."""
     rng = np.random.default_rng(seed)
     mode_label = "WITH WTH" if use_wth else "NO WTH"
+    ts_label = f"  Temporal: {temporal_scheme}" + (f"({temporal_param})" if temporal_scheme != "uniform" else "")
     print(f"\n{'='*70}")
     print(f"  STAGE 1: Random Weight Search ({n_samples:,} samples) [{mode_label}]")
+    print(f"{ts_label}")
     print(f"{'='*70}")
     print(f"  Historical games: {len(games)}")
     print(f"  Parameters: {len(param_keys)}")
 
-    baseline_acc = _evaluate_weights(CORE_WEIGHTS, games, param_keys, use_wth=use_wth)
+    _ew = lambda w: _evaluate_weights(
+        w, games, param_keys, use_wth=use_wth,
+        temporal_scheme=temporal_scheme, temporal_param=temporal_param)
+
+    baseline_acc = _ew(CORE_WEIGHTS)
     print(f"  Current weights accuracy: {baseline_acc:.4f} ({baseline_acc*100:.1f}%)")
 
     results = []
@@ -418,7 +606,7 @@ def stage1_grid_search(games: List[Tuple], param_keys: list,
 
     for i in range(n_samples):
         w = _random_weight_vector(param_keys, rng)
-        acc = _evaluate_weights(w, games, param_keys, use_wth=use_wth)
+        acc = _ew(w)
         results.append((acc, w))
 
         if (i + 1) in checkpoints:
@@ -443,7 +631,9 @@ def stage1_grid_search(games: List[Tuple], param_keys: list,
 def stage2_sensitivity(games: List[Tuple], param_keys: list,
                        best_weights: dict,
                        perturbation_pcts: List[float] = None,
-                       use_wth: bool = False
+                       use_wth: bool = False,
+                       temporal_scheme: str = "uniform",
+                       temporal_param: float = 0.95
                        ) -> List[Tuple[str, float, float, float]]:
     """Perturb each weight +/-50% and measure accuracy change.
 
@@ -458,7 +648,11 @@ def stage2_sensitivity(games: List[Tuple], param_keys: list,
     print(f"  STAGE 2: Sensitivity Analysis [{mode_label}]")
     print(f"{'='*70}")
 
-    base_acc = _evaluate_weights(best_weights, games, param_keys, use_wth=use_wth)
+    _ew = lambda w: _evaluate_weights(
+        w, games, param_keys, use_wth=use_wth,
+        temporal_scheme=temporal_scheme, temporal_param=temporal_param)
+
+    base_acc = _ew(best_weights)
     print(f"  Base accuracy: {base_acc:.4f}")
 
     sensitivities = []
@@ -485,7 +679,7 @@ def stage2_sensitivity(games: List[Tuple], param_keys: list,
             total = sum(perturbed.values())
             perturbed = {k: v / total for k, v in perturbed.items()}
 
-            acc = _evaluate_weights(perturbed, games, param_keys, use_wth=use_wth)
+            acc = _ew(perturbed)
             delta = acc - base_acc
 
             if abs(delta) > abs(max_delta):
@@ -518,7 +712,9 @@ def stage2_sensitivity(games: List[Tuple], param_keys: list,
 
 def stage3_bayesian(games: List[Tuple], param_keys: list,
                     start_weights: dict, n_trials: int = 500,
-                    use_wth: bool = False
+                    use_wth: bool = False,
+                    temporal_scheme: str = "uniform",
+                    temporal_param: float = 0.95
                     ) -> Tuple[dict, float]:
     """Optimize weights using scipy.optimize.minimize (Nelder-Mead).
 
@@ -529,24 +725,35 @@ def stage3_bayesian(games: List[Tuple], param_keys: list,
     print(f"  STAGE 3: Bayesian / Numerical Optimization ({n_trials} trials) [{mode_label}]")
     print(f"{'='*70}")
 
-    base_acc = _evaluate_weights(start_weights, games, param_keys, use_wth=use_wth)
+    _ew = lambda w: _evaluate_weights(
+        w, games, param_keys, use_wth=use_wth,
+        temporal_scheme=temporal_scheme, temporal_param=temporal_param)
+
+    base_acc = _ew(start_weights)
     print(f"  Starting accuracy: {base_acc:.4f}")
 
     best_weights, best_acc = _try_optuna(games, param_keys, start_weights,
-                                          n_trials, use_wth=use_wth)
+                                          n_trials, use_wth=use_wth,
+                                          temporal_scheme=temporal_scheme,
+                                          temporal_param=temporal_param)
     if best_weights is not None:
         return best_weights, best_acc
 
     best_weights, best_acc = _try_scipy(games, param_keys, start_weights,
-                                         n_trials, use_wth=use_wth)
+                                         n_trials, use_wth=use_wth,
+                                         temporal_scheme=temporal_scheme,
+                                         temporal_param=temporal_param)
     if best_weights is not None:
         return best_weights, best_acc
 
     return _random_local_search(games, param_keys, start_weights,
-                                 n_trials, use_wth=use_wth)
+                                 n_trials, use_wth=use_wth,
+                                 temporal_scheme=temporal_scheme,
+                                 temporal_param=temporal_param)
 
 
-def _try_optuna(games, param_keys, start_weights, n_trials, use_wth=False):
+def _try_optuna(games, param_keys, start_weights, n_trials, use_wth=False,
+                temporal_scheme="uniform", temporal_param=0.95):
     try:
         import optuna
         optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -566,7 +773,9 @@ def _try_optuna(games, param_keys, start_weights, n_trials, use_wth=False):
 
         total = sum(raw.values())
         weights = {k: v / total for k, v in raw.items()}
-        return _evaluate_weights(weights, games, param_keys, use_wth=use_wth)
+        return _evaluate_weights(weights, games, param_keys, use_wth=use_wth,
+                                 temporal_scheme=temporal_scheme,
+                                 temporal_param=temporal_param)
 
     study = optuna.create_study(direction="maximize",
                                 sampler=optuna.samplers.TPESampler(seed=42))
@@ -584,7 +793,8 @@ def _try_optuna(games, param_keys, start_weights, n_trials, use_wth=False):
     return best_weights, best_acc
 
 
-def _try_scipy(games, param_keys, start_weights, n_trials, use_wth=False):
+def _try_scipy(games, param_keys, start_weights, n_trials, use_wth=False,
+               temporal_scheme="uniform", temporal_param=0.95):
     try:
         from scipy.optimize import minimize
     except ImportError:
@@ -604,7 +814,9 @@ def _try_scipy(games, param_keys, start_weights, n_trials, use_wth=False):
         raw /= raw.sum()
         w = {k: float(v) for k, v in zip(param_keys, raw)}
         call_count[0] += 1
-        return -_evaluate_weights(w, games, param_keys, use_wth=use_wth)
+        return -_evaluate_weights(w, games, param_keys, use_wth=use_wth,
+                                  temporal_scheme=temporal_scheme,
+                                  temporal_param=temporal_param)
 
     result = minimize(neg_accuracy, x0, method="Nelder-Mead",
                       options={"maxiter": n_trials, "maxfev": n_trials * 2,
@@ -619,18 +831,23 @@ def _try_scipy(games, param_keys, start_weights, n_trials, use_wth=False):
     return best_weights, best_acc
 
 
-def _random_local_search(games, param_keys, start_weights, n_trials, use_wth=False):
+def _random_local_search(games, param_keys, start_weights, n_trials, use_wth=False,
+                         temporal_scheme="uniform", temporal_param=0.95):
     print("  Using random local search (no scipy/optuna)...")
+
+    _ew = lambda w: _evaluate_weights(
+        w, games, param_keys, use_wth=use_wth,
+        temporal_scheme=temporal_scheme, temporal_param=temporal_param)
 
     rng = np.random.default_rng(42)
     best_weights = dict(start_weights)
-    best_acc = _evaluate_weights(best_weights, games, param_keys, use_wth=use_wth)
+    best_acc = _ew(best_weights)
 
     for i in range(n_trials):
         candidate = _random_weight_vector(param_keys, rng,
                                            base_weights=best_weights,
                                            perturbation=0.2)
-        acc = _evaluate_weights(candidate, games, param_keys, use_wth=use_wth)
+        acc = _ew(candidate)
         if acc > best_acc:
             best_acc = acc
             best_weights = candidate
@@ -732,18 +949,22 @@ def generate_report(current_weights: dict, optimized_weights: dict,
 # ── Main entry point ─────────────────────────────────────────────────────────
 
 def _run_single_optimization(games, param_keys, n_grid, n_bayesian,
-                              use_wth=False) -> Tuple[dict, float, float, List]:
+                              use_wth=False,
+                              temporal_scheme="uniform",
+                              temporal_param=0.95) -> Tuple[dict, float, float, List]:
     """Run full 3-stage pipeline for one mode. Returns (weights, acc, baseline, sensitivities)."""
+    ts_kw = dict(temporal_scheme=temporal_scheme, temporal_param=temporal_param)
+
     top_results, baseline_acc = stage1_grid_search(
-        games, param_keys, n_samples=n_grid, use_wth=use_wth)
+        games, param_keys, n_samples=n_grid, use_wth=use_wth, **ts_kw)
     best_random_acc, best_random_weights = top_results[0]
 
     sensitivities = stage2_sensitivity(
-        games, param_keys, best_random_weights, use_wth=use_wth)
+        games, param_keys, best_random_weights, use_wth=use_wth, **ts_kw)
 
     best_weights, best_acc = stage3_bayesian(
         games, param_keys, best_random_weights,
-        n_trials=n_bayesian, use_wth=use_wth)
+        n_trials=n_bayesian, use_wth=use_wth, **ts_kw)
 
     if best_random_acc > best_acc:
         final_weights = best_random_weights
@@ -775,8 +996,10 @@ def run_optimization(n_grid: int = 10000, n_bayesian: int = 500) -> str:
     if len(games) < 50:
         return "ERROR: Not enough historical games found for optimization."
 
+    ts, tp = TEMPORAL_SCHEME
     final_weights, final_acc, baseline_acc, sensitivities = \
-        _run_single_optimization(games, param_keys, n_grid, n_bayesian, use_wth=False)
+        _run_single_optimization(games, param_keys, n_grid, n_bayesian,
+                                 use_wth=False, temporal_scheme=ts, temporal_param=tp)
 
     report = generate_report(
         CORE_WEIGHTS, final_weights,
@@ -804,12 +1027,15 @@ def run_dual_optimization(n_grid: int = 10000, n_bayesian: int = 500) -> str:
     if len(games) < 50:
         return "ERROR: Not enough historical games found for optimization."
 
+    ts, tp = TEMPORAL_SCHEME
+
     # ── Pass 1: No WTH ──
     print("\n" + "▓" * 70)
     print("  PASS 1: OPTIMIZING WITHOUT WTH LAYER")
     print("▓" * 70)
     w_no_wth, acc_no_wth, base_no_wth, sens_no_wth = \
-        _run_single_optimization(games, param_keys, n_grid, n_bayesian, use_wth=False)
+        _run_single_optimization(games, param_keys, n_grid, n_bayesian,
+                                 use_wth=False, temporal_scheme=ts, temporal_param=tp)
     w_no_wth = _apply_floor_and_normalize(w_no_wth)
 
     # ── Pass 2: With WTH ──
@@ -817,7 +1043,8 @@ def run_dual_optimization(n_grid: int = 10000, n_bayesian: int = 500) -> str:
     print("  PASS 2: OPTIMIZING WITH WTH LAYER")
     print("▓" * 70)
     w_with_wth, acc_with_wth, base_with_wth, sens_with_wth = \
-        _run_single_optimization(games, param_keys, n_grid, n_bayesian, use_wth=True)
+        _run_single_optimization(games, param_keys, n_grid, n_bayesian,
+                                 use_wth=True, temporal_scheme=ts, temporal_param=tp)
     w_with_wth = _apply_floor_and_normalize(w_with_wth)
 
     # ── Combined report ──
@@ -1046,5 +1273,158 @@ def _get_year_from_seed(*args):
     return False
 
 
+def run_overfitting_diagnostics() -> str:
+    """Investigate overfitting, leakage, and noise sensitivity.
+
+    Checks: temporal train/test gap, LOYO stability, param noise robustness,
+    and consistency-AdjEM correlation (proxy vs real signal).
+    """
+    from sklearn.metrics import accuracy_score, brier_score_loss
+
+    print("\n  Loading historical data for overfitting diagnostics...")
+    kb = pd.read_csv("archive-3/KenPom Barttorvik.csv")
+    tm = pd.read_csv("archive-3/Tournament Matchups.csv")
+    param_keys = list(CORE_WEIGHTS.keys())
+    games = _build_eval_games(kb, tm)
+
+    # Build games by year
+    year_games = {}
+    years = sorted(kb["YEAR"].unique())
+    years = [y for y in years if 2010 <= y <= 2025]
+    for yr in years:
+        yr_kb = kb[kb["YEAR"] == yr]
+        yr_tm = tm[tm["YEAR"] == yr]
+        if yr_kb.empty or yr_tm.empty:
+            continue
+        yg = _build_eval_games(yr_kb, yr_tm, start_year=yr, end_year=yr)
+        if yg:
+            year_games[yr] = yg
+
+    lines = [
+        "",
+        "=" * 70,
+        "  OVERFITTING & NOISE DIAGNOSTICS",
+        "=" * 70,
+    ]
+
+    # 1. Temporal split: train 2008-2018, test 2019-2025
+    train_years = [y for y in years if y <= 2018]
+    test_years = [y for y in years if y >= 2019]
+    train_g = []
+    for yr in train_years:
+        if yr in year_games:
+            train_g.extend(year_games[yr])
+    test_g = []
+    for yr in test_years:
+        if yr in year_games:
+            test_g.extend(year_games[yr])
+
+    if train_g and test_g:
+        all_p = [g[0] for g in test_g] + [g[1] for g in test_g]
+        norm = _normalize_param_values(all_p, param_keys)
+        n = len(test_g)
+        na, nb = norm[:n], norm[n:]
+        probs = [_predict_winner(na[i], nb[i], CORE_WEIGHTS, LOGISTIC_K) for i in range(n)]
+        labels = [g[2] for g in test_g]
+        acc_test = accuracy_score(labels, [p > 0.5 for p in probs])
+        brier_test = brier_score_loss(labels, probs)
+        lines.extend([
+            "",
+            "  ┌─ 1. Temporal Train/Test (train ≤2018, test 2019+) ─────────────┐",
+            f"  │  Test accuracy:  {acc_test:.1%} ({len(test_g)} games)          │",
+            f"  │  Test Brier:     {brier_test:.4f}                            │",
+            "  │  If test << train accuracy → possible overfitting to old data  │",
+            "  └────────────────────────────────────────────────────────────────┘",
+        ])
+
+    # 2. LOYO variance
+    per_year_acc = []
+    for test_yr, test_games in year_games.items():
+        all_p = [g[0] for g in test_games] + [g[1] for g in test_games]
+        norm = _normalize_param_values(all_p, param_keys)
+        tn = len(test_games)
+        tna, tnb = norm[:tn], norm[tn:]
+        preds = [_predict_winner(tna[i], tnb[i], CORE_WEIGHTS, LOGISTIC_K) for i in range(tn)]
+        labs = [g[2] for g in test_games]
+        per_year_acc.append(accuracy_score(labs, [p > 0.5 for p in preds]))
+
+    if per_year_acc:
+        acc_mean = np.mean(per_year_acc)
+        acc_std = np.std(per_year_acc)
+        lines.extend([
+            "",
+            "  ┌─ 2. LOYO Per-Year Accuracy Variance ─────────────────────────────┐",
+            f"  │  Mean accuracy:  {acc_mean:.1%}                                 │",
+            f"  │  Std dev:        {acc_std:.1%} (lower = more stable)         │",
+            "  │  High variance → model sensitive to specific years (noise?)      │",
+            "  └────────────────────────────────────────────────────────────────┘",
+        ])
+
+    # 3. Noise robustness: add 1% Gaussian noise to params
+    n = len(games)
+    all_p = [g[0] for g in games] + [g[1] for g in games]
+    rng = np.random.default_rng(42)
+    noisy_p = []
+    for p in all_p:
+        np_dict = dict(p)
+        for k in param_keys:
+            v = np_dict.get(k, 0)
+            np_dict[k] = v + rng.normal(0, abs(v) * 0.01 + 0.005)
+        noisy_p.append(np_dict)
+
+    norm_orig = _normalize_param_values(all_p, param_keys)
+    norm_noisy = _normalize_param_values(noisy_p, param_keys)
+    na_o, nb_o = norm_orig[:n], norm_orig[n:]
+    na_n, nb_n = norm_noisy[:n], norm_noisy[n:]
+    probs_o = [_predict_winner(na_o[i], nb_o[i], CORE_WEIGHTS, LOGISTIC_K) for i in range(n)]
+    probs_n = [_predict_winner(na_n[i], nb_n[i], CORE_WEIGHTS, LOGISTIC_K) for i in range(n)]
+    labels = [g[2] for g in games]
+    acc_o = accuracy_score(labels, [p > 0.5 for p in probs_o])
+    acc_n = accuracy_score(labels, [p > 0.5 for p in probs_n])
+    flip_rate = np.mean([1 if (p > 0.5) != (q > 0.5) else 0 for p, q in zip(probs_o, probs_n)])
+    lines.extend([
+        "",
+        "  ┌─ 3. Noise Robustness (1% Gaussian noise on all params) ──────────────┐",
+        f"  │  Original accuracy:   {acc_o:.1%}                               │",
+        f"  │  Noisy accuracy:      {acc_n:.1%}                               │",
+        f"  │  Prediction flip %:   {flip_rate:.1%} (pred changed vs orig)   │",
+        "  │  High flip rate → predictions fragile to small input noise        │",
+        "  └────────────────────────────────────────────────────────────────┘",
+    ])
+
+    # 4. Consistency–AdjEM correlation (historical proxy vs signal)
+    from src.data_loader import load_all_teams
+    teams = load_all_teams()
+    data = [(t.adj_em, t.consistency, t.scoring_margin_std) for t in teams]
+    if data:
+        adj_ems = [d[0] for d in data]
+        cons = [d[1] for d in data]
+        sm_std = [d[2] for d in data]
+        r_con_em = np.corrcoef(cons, adj_ems)[0, 1] if np.std(cons) > 0 else 0
+        r_std_em = np.corrcoef(sm_std, adj_ems)[0, 1] if np.std(sm_std) > 0 else 0
+        lines.extend([
+            "",
+            "  ┌─ 4. Consistency / AdjEM Correlation (2026 data) ───────────────────┐",
+            f"  │  consistency vs adj_em:     r = {r_con_em:.3f}                    │",
+            f"  │  scoring_margin_std vs adj_em: r = {r_std_em:.3f}                 │",
+            "  │  Low r → consistency carries independent signal (good)             │",
+            "  │  High r → consistency may duplicate adj_em (redundant)             │",
+            "  └────────────────────────────────────────────────────────────────┘",
+        ])
+
+    lines.extend(["", "=" * 70])
+    report = "\n".join(lines)
+    print(report)
+    return report
+
+
 if __name__ == "__main__":
-    run_dual_optimization()
+    import sys
+    if "--diagnostics" in sys.argv or "-d" in sys.argv:
+        run_overfitting_diagnostics()
+        if "--metrics" in sys.argv:
+            run_evaluation_metrics()
+    elif "--metrics" in sys.argv or "-m" in sys.argv:
+        run_evaluation_metrics()
+    else:
+        run_dual_optimization()

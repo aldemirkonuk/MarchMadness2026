@@ -151,7 +151,7 @@ def save_dashboard(teams, matchups, result, output_dir=None):
             "orb_pct": round(t.orb_pct, 3),
             "drb_pct": round(t.drb_pct, 3),
             "seed_score": round(t.seed_score, 3),
-            "top50_perf": round(t.top50_perf, 3),
+            "top25_perf": round(t.top25_perf, 3),
             "ftr": round(t.ftr, 3),
             "ast_pct": round(t.ast_pct, 3),
             "spi": round(t.spi, 3),

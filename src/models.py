@@ -25,7 +25,7 @@ class Team:
     three_pri: float = 0.0       # kept as raw stat, not weighted
     orb_pct: float = 0.0
     seed_score: float = 0.0
-    top50_perf: float = 0.0
+    top25_perf: float = 0.0
 
     # Tier 2 strong parameters
     ftr: float = 0.0
@@ -126,6 +126,10 @@ class Team:
     # CWP: star player 17+ at halftime -> win%
     cwp_star_17_half_win_pct: float = 0.5
 
+    # P&R proxy metrics (from EvanMiya player BPR)
+    big_man_offense: float = 0.0
+    rim_defense_bpr: float = 0.0
+
 
 @dataclass
 class Matchup:
@@ -139,6 +143,7 @@ class Matchup:
     win_prob_a_ensemble: float = 0.5
     volatility: float = 0.0
     confidence: float = 0.0
+    h2h_season_edge: float = 0.0
 
     pros_a: list = field(default_factory=list)
     cons_a: list = field(default_factory=list)

@@ -225,9 +225,10 @@ def _row_to_stats(row) -> dict:
     stl_rate = tov_d * 0.5
     dvi = 0.3 * blk + 0.3 * stl_rate + 0.4 * (1 - three_pct_d)
 
-    from src.weight_optimizer import _load_historical_lookups
+    from src.weight_optimizer import _load_historical_legacy_priors
     team_name = str(row.get("TEAM", "")).strip()
-    team_ctf, team_pase = _load_historical_lookups()
+    year = int(float(row.get("YEAR", 0) or 0))
+    team_pase = _load_historical_legacy_priors()
 
     return {
         "adj_em": adj_em,
@@ -252,9 +253,9 @@ def _row_to_stats(row) -> dict:
         "z_rating": 0.45 * adj_em + 0.35 * sos + 3.0,
         "net_score": max(0, (68 - seed * 4) / 68.0),
         "rbm": (orb + drb) / 2 - 0.5,
-        "consistency": 1.0 / (1.0 + abs(adj_em) * 0.02),
-        "ctf": team_ctf.get(team_name, 0.5),
-        "legacy_factor": team_pase.get(team_name, 0.0),
+        "consistency": 15.0 / (15.0 + 14.0 * (1.0 + abs(adj_em) / 30.0) ** (-0.5)),
+        "ctf": 0.5,
+        "legacy_factor": team_pase.get((team_name, year), 0.0),
         "scoring_margin_std": 14.0 * (1.0 + abs(adj_em) / 30.0) ** (-0.5),
     }
 
@@ -290,7 +291,7 @@ def predict_matchup(model, team_a: Team, team_b: Team,
     """Predict win probability for team_a using XGBoost model.
 
     Applies seed-based calibration to prevent extreme divergence.
-    Optionally uses 1A probability as a soft anchor.
+    No 1A anchoring -- the ensemble layer handles model blending.
     """
     if model is None:
         return 0.5
@@ -318,13 +319,6 @@ def predict_matchup(model, team_a: Team, team_b: Team,
         model_weight = 0.75
 
     calibrated = model_weight * raw_prob + (1.0 - model_weight) * seed_prior
-
-    # If 1A probability available, soft-anchor toward it to prevent wild divergence
-    if p_1a is not None:
-        divergence = abs(calibrated - p_1a)
-        if divergence > 0.20:
-            anchor_weight = 0.3
-            calibrated = (1.0 - anchor_weight) * calibrated + anchor_weight * p_1a
 
     return calibrated
 
