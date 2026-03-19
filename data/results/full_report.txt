@@ -8,76 +8,76 @@
 ========================================================================
   #   Team                     Seed  Region      Champ%     F4%     E8%    S16%
   --------------------------------------------------------------------
-  1   Duke                     1     East         30.7%   59.3%   72.0%   84.2%
-  2   Michigan                 1     Midwest      25.2%   62.1%   78.2%   89.2%
-  3   Arizona                  1     West         16.1%   51.5%   69.1%   83.6%
-  4   Florida                  1     South         8.7%   46.4%   66.5%   87.7%
-  5   Michigan State           3     East          3.1%   16.9%   48.1%   69.1%
-  6   Illinois                 3     South         2.8%   22.7%   48.0%   73.7%
-  7   Gonzaga                  3     West          2.7%   19.4%   45.5%   73.5%
-  8   Iowa State               2     Midwest       2.2%   14.7%   42.4%   75.0%
-  9   Purdue                   2     West          1.8%   15.0%   37.1%   71.8%
-  10  Virginia                 3     Midwest       1.4%   11.7%   35.4%   61.6%
-  11  Houston                  2     South         1.1%   12.3%   30.8%   64.6%
-  12  Connecticut              2     East          1.1%   10.2%   34.4%   73.1%
-  13  St. John's               5     East          0.7%    7.3%   16.2%   64.4%
-  14  Arkansas                 4     West          0.5%    6.6%   16.9%   58.5%
-  15  Nebraska                 4     South         0.4%    6.8%   16.1%   52.4%
-  16  Tennessee                6     Midwest       0.3%    4.5%   16.5%   37.4%
-  17  Vanderbilt               5     South         0.2%    4.6%   12.2%   39.4%
-  18  Saint Mary's             7     South         0.2%    3.8%   11.3%   29.1%
-  19  Wisconsin                5     West          0.1%    2.3%    8.2%   35.5%
-  20  Texas Tech               5     Midwest       0.1%    2.6%    8.8%   53.6%
-  21  Louisville               6     East          0.1%    1.8%    8.9%   22.2%
-  22  North Carolina           6     South         0.1%    2.0%    7.6%   20.3%
-  23  Kansas                   4     East          0.1%    1.5%    5.7%   29.3%
-  24  Miami FL                 7     West          0.1%    1.8%    6.9%   21.3%
-  25  BYU                      6     West          0.1%    2.0%    9.0%   25.4%
-  26  Saint Louis              9     Midwest       0.0%    1.1%    3.5%    6.2%
-  27  TCU                      9     East          0.0%    1.0%    3.4%    8.9%
-  28  Alabama                  4     Midwest       0.0%    1.2%    5.3%   33.9%
-  29  Kentucky                 7     Midwest       0.0%    0.8%    3.9%   15.7%
-  30  Georgia                  8     Midwest       0.0%    0.7%    2.5%    4.6%
+  1   Duke                     1     East         31.5%   59.3%   72.0%   84.2%
+  2   Michigan                 1     Midwest      25.1%   62.9%   78.7%   90.1%
+  3   Arizona                  1     West         16.0%   51.2%   68.9%   83.6%
+  4   Florida                  1     South         8.7%   45.9%   66.3%   87.7%
+  5   Michigan State           3     East          3.1%   16.8%   47.8%   68.5%
+  6   Illinois                 3     South         2.9%   23.0%   48.1%   73.8%
+  7   Gonzaga                  3     West          2.8%   20.5%   47.1%   74.5%
+  8   Iowa State               2     Midwest       1.9%   14.1%   42.0%   75.0%
+  9   Purdue                   2     West          1.5%   14.1%   35.5%   70.8%
+  10  Virginia                 3     Midwest       1.4%   11.8%   36.3%   62.6%
+  11  Houston                  2     South         1.2%   12.6%   31.0%   65.2%
+  12  Connecticut              2     East          1.1%   10.2%   34.2%   73.1%
+  13  St. John's               5     East          0.7%    7.3%   16.0%   64.0%
+  14  Arkansas                 4     West          0.4%    6.5%   16.7%   57.9%
+  15  Nebraska                 4     South         0.4%    6.6%   15.8%   51.5%
+  16  Tennessee                6     Midwest       0.3%    4.3%   16.1%   36.5%
+  17  Vanderbilt               5     South         0.2%    4.8%   12.6%   40.0%
+  18  Saint Mary's             7     South         0.2%    3.7%   11.0%   28.7%
+  19  Wisconsin                5     West          0.1%    2.5%    8.6%   36.3%
+  20  Texas Tech               5     Midwest       0.1%    2.8%    9.1%   54.2%
+  21  Louisville               6     East          0.1%    2.0%    9.4%   22.8%
+  22  BYU                      6     West          0.1%    2.0%    8.9%   24.5%
+  23  North Carolina           6     South         0.1%    2.0%    7.6%   20.2%
+  24  Miami FL                 7     West          0.1%    1.8%    7.0%   21.9%
+  25  Kansas                   4     East          0.0%    1.5%    5.7%   29.4%
+  26  Saint Louis              9     Midwest       0.0%    1.0%    3.2%    5.7%
+  27  Alabama                  4     Midwest       0.0%    1.2%    5.2%   33.1%
+  28  TCU                      9     East          0.0%    1.0%    3.4%    8.9%
+  29  Utah State               9     West          0.0%    0.8%    3.3%    9.7%
+  30  Georgia                  8     Midwest       0.0%    0.6%    2.2%    4.2%
 
   --- EAST REGION ---
-    ( 1) Duke                      Champ:  30.7% | F4:  59.3%
-    ( 3) Michigan State            Champ:   3.1% | F4:  16.9%
+    ( 1) Duke                      Champ:  31.5% | F4:  59.3%
+    ( 3) Michigan State            Champ:   3.1% | F4:  16.8%
     ( 2) Connecticut               Champ:   1.1% | F4:  10.2%
     ( 5) St. John's                Champ:   0.7% | F4:   7.3%
-    ( 6) Louisville                Champ:   0.1% | F4:   1.8%
-    ( 4) Kansas                    Champ:   0.1% | F4:   1.5%
+    ( 6) Louisville                Champ:   0.1% | F4:   2.0%
+    ( 4) Kansas                    Champ:   0.0% | F4:   1.5%
     ( 9) TCU                       Champ:   0.0% | F4:   1.0%
     ( 7) UCLA                      Champ:   0.0% | F4:   0.8%
 
   --- WEST REGION ---
-    ( 1) Arizona                   Champ:  16.1% | F4:  51.5%
-    ( 3) Gonzaga                   Champ:   2.7% | F4:  19.4%
-    ( 2) Purdue                    Champ:   1.8% | F4:  15.0%
-    ( 4) Arkansas                  Champ:   0.5% | F4:   6.6%
-    ( 5) Wisconsin                 Champ:   0.1% | F4:   2.3%
-    ( 7) Miami FL                  Champ:   0.1% | F4:   1.8%
+    ( 1) Arizona                   Champ:  16.0% | F4:  51.2%
+    ( 3) Gonzaga                   Champ:   2.8% | F4:  20.5%
+    ( 2) Purdue                    Champ:   1.5% | F4:  14.1%
+    ( 4) Arkansas                  Champ:   0.4% | F4:   6.5%
+    ( 5) Wisconsin                 Champ:   0.1% | F4:   2.5%
     ( 6) BYU                       Champ:   0.1% | F4:   2.0%
+    ( 7) Miami FL                  Champ:   0.1% | F4:   1.8%
     ( 9) Utah State                Champ:   0.0% | F4:   0.8%
 
   --- SOUTH REGION ---
-    ( 1) Florida                   Champ:   8.7% | F4:  46.4%
-    ( 3) Illinois                  Champ:   2.8% | F4:  22.7%
-    ( 2) Houston                   Champ:   1.1% | F4:  12.3%
-    ( 4) Nebraska                  Champ:   0.4% | F4:   6.8%
-    ( 5) Vanderbilt                Champ:   0.2% | F4:   4.6%
-    ( 7) Saint Mary's              Champ:   0.2% | F4:   3.8%
+    ( 1) Florida                   Champ:   8.7% | F4:  45.9%
+    ( 3) Illinois                  Champ:   2.9% | F4:  23.0%
+    ( 2) Houston                   Champ:   1.2% | F4:  12.6%
+    ( 4) Nebraska                  Champ:   0.4% | F4:   6.6%
+    ( 5) Vanderbilt                Champ:   0.2% | F4:   4.8%
+    ( 7) Saint Mary's              Champ:   0.2% | F4:   3.7%
     ( 6) North Carolina            Champ:   0.1% | F4:   2.0%
     ( 8) Clemson                   Champ:   0.0% | F4:   0.5%
 
   --- MIDWEST REGION ---
-    ( 1) Michigan                  Champ:  25.2% | F4:  62.1%
-    ( 2) Iowa State                Champ:   2.2% | F4:  14.7%
-    ( 3) Virginia                  Champ:   1.4% | F4:  11.7%
-    ( 6) Tennessee                 Champ:   0.3% | F4:   4.5%
-    ( 5) Texas Tech                Champ:   0.1% | F4:   2.6%
-    ( 9) Saint Louis               Champ:   0.0% | F4:   1.1%
+    ( 1) Michigan                  Champ:  25.1% | F4:  62.9%
+    ( 2) Iowa State                Champ:   1.9% | F4:  14.1%
+    ( 3) Virginia                  Champ:   1.4% | F4:  11.8%
+    ( 6) Tennessee                 Champ:   0.3% | F4:   4.3%
+    ( 5) Texas Tech                Champ:   0.1% | F4:   2.8%
+    ( 9) Saint Louis               Champ:   0.0% | F4:   1.0%
     ( 4) Alabama                   Champ:   0.0% | F4:   1.2%
-    ( 8) Georgia                   Champ:   0.0% | F4:   0.7%
+    ( 8) Georgia                   Champ:   0.0% | F4:   0.6%
 
 ========================================================================
   ROUND OF 64 PREDICTIONS (Detailed)
@@ -109,9 +109,9 @@
          - Weak in Clutch performance vs opponent
 
   ( 6) Louisville           vs (11) South Florida       
-       PICK: Louisville (79.9%) [LOCK]  1A:75.8% | 1B:83.9% | ENS:79.9%  
-         + Strong edge in Overall efficiency (0.73 vs 0.55)
-         + Strong edge in Shooting efficiency (0.70 vs 0.25)
+       PICK: Louisville (79.8%) [LOCK]  1A:75.6% | 1B:83.9% | ENS:79.8%  
+         + Strong edge in Overall efficiency (0.72 vs 0.55)
+         + Strong edge in Shooting efficiency (0.69 vs 0.25)
          - Weak in Offensive rebounding vs opponent
 
   ( 3) Michigan State       vs (14) North Dakota State  
@@ -121,14 +121,14 @@
          - Weak in Momentum / hot streak vs opponent
 
   ( 7) UCLA                 vs (10) UCF                 
-       PICK: UCLA (64.0%) [LOCK]  1A:63.3% | 1B:64.7% | ENS:64.0%  
+       PICK: UCLA (63.9%) [LOCK]  1A:63.2% | 1B:64.7% | ENS:63.9%  
          + Advantage in Overall efficiency
          + Advantage in Shooting efficiency
          - Weak in Clutch performance vs opponent
 
   ( 2) Connecticut          vs (15) Furman              
-       PICK: Connecticut (96.2%) [LOCK]  1A:99.3% | 1B:91.4% | ENS:96.2%  
-         + Strong edge in Overall efficiency (0.78 vs 0.18)
+       PICK: Connecticut (96.2%) [LOCK]  1A:99.2% | 1B:91.4% | ENS:96.2%  
+         + Strong edge in Overall efficiency (0.77 vs 0.18)
          + Strong edge in Clutch performance (0.31 vs 0.00)
          - Weak in Halftime adjustment ability vs opponent
 
@@ -147,7 +147,7 @@
          - Weak in Clutch performance vs opponent
 
   ( 5) Wisconsin            vs (12) High Point          
-       PICK: Wisconsin (85.9%) [LOCK]  1A:86.5% | 1B:85.2% | ENS:85.9%  
+       PICK: Wisconsin (85.9%) [LOCK]  1A:86.4% | 1B:85.2% | ENS:85.9%  
          + Strong edge in Overall efficiency (0.69 vs 0.39)
          + Strong edge in Strength of schedule (0.90 vs 0.00)
          - Weak in Clutch performance vs opponent
@@ -209,7 +209,7 @@
          - Weak in Offensive rebounding vs opponent
 
   ( 6) North Carolina       vs (11) VCU                 
-       PICK: North Carolina (78.6%) [LOCK]  1A:77.0% | 1B:80.3% | ENS:78.6%  
+       PICK: North Carolina (78.5%) [LOCK]  1A:76.9% | 1B:80.3% | ENS:78.5%  
          + Advantage in Overall efficiency
          + Strong edge in Clutch performance (1.00 vs 0.47)
          - Weak in Free throw reliability vs opponent
@@ -247,8 +247,8 @@
          - Weak in Clutch performance vs opponent
 
   ( 5) Texas Tech           vs (12) Akron               
-       PICK: Texas Tech (86.8%) [LOCK]  1A:87.0% | 1B:86.7% | ENS:86.8%  
-         + Strong edge in Overall efficiency (0.67 vs 0.48)
+       PICK: Texas Tech (87.0%) [LOCK]  1A:87.2% | 1B:86.8% | ENS:87.0%  
+         + Strong edge in Overall efficiency (0.69 vs 0.48)
          + Strong edge in Strength of schedule (0.95 vs 0.15)
          - Weak in Shooting efficiency vs opponent
 
@@ -295,10 +295,10 @@
        PICK: St. John's (72.4%) [SOLID]  Round: R32  UPSET
 
   ( 6) Louisville           vs ( 3) Michigan State      
-       PICK: Michigan State (75.5%) [SOLID]  Round: R32  
+       PICK: Michigan State (74.7%) [SOLID]  Round: R32  
 
   ( 7) UCLA                 vs ( 2) Connecticut         
-       PICK: Connecticut (78.5%) [SOLID]  Round: R32  
+       PICK: Connecticut (78.6%) [SOLID]  Round: R32  
 
 
   === WEST ===
@@ -306,13 +306,13 @@
        PICK: Arizona (90.5%) [LOCK]  Round: R32  
 
   ( 5) Wisconsin            vs ( 4) Arkansas            
-       PICK: Arkansas (61.2%) [LEAN]  Round: R32  
+       PICK: Arkansas (60.6%) [LEAN]  Round: R32  
 
   ( 6) BYU                  vs ( 3) Gonzaga             
-       PICK: Gonzaga (80.9%) [SOLID]  Round: R32  
+       PICK: Gonzaga (81.5%) [SOLID]  Round: R32  
 
   ( 7) Miami FL             vs ( 2) Purdue              
-       PICK: Purdue (75.7%) [SOLID]  Round: R32  
+       PICK: Purdue (75.1%) [SOLID]  Round: R32  
 
 
   === SOUTH ===
@@ -320,24 +320,24 @@
        PICK: Florida (87.5%) [LOCK]  Round: R32  
 
   ( 5) Vanderbilt           vs ( 4) Nebraska            
-       PICK: Nebraska (53.2%) [COIN FLIP]  Round: R32  
+       PICK: Nebraska (52.6%) [COIN FLIP]  Round: R32  
 
   ( 6) North Carolina       vs ( 3) Illinois            
-       PICK: Illinois (77.8%) [SOLID]  Round: R32  
+       PICK: Illinois (77.6%) [SOLID]  Round: R32  
 
   ( 7) Saint Mary's         vs ( 2) Houston             
-       PICK: Houston (65.1%) [LEAN]  Round: R32  
+       PICK: Houston (65.8%) [LEAN]  Round: R32  
 
 
   === MIDWEST ===
   ( 1) Michigan             vs ( 9) Saint Louis         
-       PICK: Michigan (88.7%) [LOCK]  Round: R32  
+       PICK: Michigan (89.6%) [LOCK]  Round: R32  
 
   ( 5) Texas Tech           vs ( 4) Alabama             
-       PICK: Texas Tech (63.4%) [LEAN]  Round: R32  UPSET
+       PICK: Texas Tech (64.1%) [LEAN]  Round: R32  UPSET
 
   ( 6) Tennessee            vs ( 3) Virginia            
-       PICK: Virginia (67.2%) [LEAN]  Round: R32  
+       PICK: Virginia (67.9%) [LEAN]  Round: R32  
 
   ( 7) Kentucky             vs ( 2) Iowa State          
        PICK: Iowa State (78.8%) [SOLID]  Round: R32  
@@ -352,7 +352,7 @@
        PICK: Duke (83.9%) [SOLID]  Round: S16  
 
   ( 3) Michigan State       vs ( 2) Connecticut         
-       PICK: Michigan State (64.0%) [LEAN]  Round: S16  UPSET
+       PICK: Michigan State (64.2%) [LEAN]  Round: S16  UPSET
 
 
   === WEST ===
@@ -360,7 +360,7 @@
        PICK: Arizona (80.1%) [SOLID]  Round: S16  
 
   ( 3) Gonzaga              vs ( 2) Purdue              
-       PICK: Gonzaga (56.7%) [COIN FLIP]  Round: S16  UPSET
+       PICK: Gonzaga (58.0%) [COIN FLIP]  Round: S16  UPSET
 
 
   === SOUTH ===
@@ -373,10 +373,10 @@
 
   === MIDWEST ===
   ( 1) Michigan             vs ( 5) Texas Tech          
-       PICK: Michigan (88.2%) [LOCK]  Round: S16  
+       PICK: Michigan (87.7%) [LOCK]  Round: S16  
 
   ( 3) Virginia             vs ( 2) Iowa State          
-       PICK: Iowa State (50.9%) [COIN FLIP]  Round: S16  
+       PICK: Iowa State (50.3%) [COIN FLIP]  Round: S16  
 
 
 ========================================================================
@@ -390,31 +390,31 @@
 
   === WEST ===
   ( 1) Arizona              vs ( 3) Gonzaga             
-       PICK: Arizona (71.2%) [SOLID]  Round: E8  
+       PICK: Arizona (70.6%) [SOLID]  Round: E8  
 
 
   === SOUTH ===
   ( 1) Florida              vs ( 3) Illinois            
-       PICK: Florida (64.6%) [LEAN]  Round: E8  
+       PICK: Florida (63.9%) [LEAN]  Round: E8  
 
 
   === MIDWEST ===
   ( 1) Michigan             vs ( 2) Iowa State          
-       PICK: Michigan (77.5%) [SOLID]  Round: E8  
+       PICK: Michigan (78.5%) [SOLID]  Round: E8  
 
 
 ========================================================================
   FINAL FOUR (Deterministic Bracket)
 ========================================================================
 
-  === SEMI 1 (EAST VS WEST) ===
-  ( 1) Duke                 vs ( 1) Arizona             
-       PICK: Duke (64.7%) [LEAN]  Round: F4  
+  === SEMI 1 (EAST VS SOUTH) ===
+  ( 1) Duke                 vs ( 1) Florida             
+       PICK: Duke (72.7%) [SOLID]  Round: F4  
 
 
-  === SEMI 2 (SOUTH VS MIDWEST) ===
-  ( 1) Florida              vs ( 1) Michigan            
-       PICK: Michigan (67.5%) [LEAN]  Round: F4  
+  === SEMI 2 (WEST VS MIDWEST) ===
+  ( 1) Arizona              vs ( 1) Michigan            
+       PICK: Michigan (56.1%) [COIN FLIP]  Round: F4  
 
 
 ========================================================================
@@ -423,7 +423,7 @@
 
   === NATIONAL CHAMPIONSHIP ===
   ( 1) Duke                 vs ( 1) Michigan            
-       PICK: Duke (63.1%) [LEAN]  Round: Championship  
+       PICK: Duke (62.1%) [LEAN]  Round: Championship  
 
 
 ========================================================================
@@ -475,4 +475,71 @@
 ========================================================================
   CINDERELLA ALERTS
 ========================================================================
-  * Louisville (6-seed, East) -- AdjEM Rank #19, Exp=2.5, Champ=0.06%
+  * Louisville (6-seed, East) -- AdjEM Rank #19, Exp=2.5, Champ=0.08%
+
+======================================================================
+  SOCIAL MEDIA VERIFICATION LAYER
+  Model vs. Analyst Upset Predictions
+======================================================================
+
+  --- CONFIRMED — Model agrees with analyst upset pick ---
+
+  (9) TCU over (8) Ohio State
+  Model picks the upset (59%)
+  Injury penalty on Ohio State: -0.2 AdjEM
+  Analyst narrative: Ohio State defense 174th nationally is major red flag against physical battle-tested Big 12 team.
+  Key factor: defensive_weakness
+  Model factors:
+    • Model gives upset 59% — near or above coin-flip
+
+  --- BLIND SPOT — Model may underweight a key factor ---
+
+  (11) South Florida over (6) Louisville
+  Long shot (20%)
+  Injury penalty on Louisville: -0.7 AdjEM
+  Analyst narrative: Louisville Pat Kelsey 0-5 all-time in tournament. USF Izaiyah Nelson best mid-major player in field.
+  Key factor: coaching_history
+  Model factors:
+    • Model has upset at 20% but injury data warrants review
+    • Injury penalty: -0.7 AdjEM on Louisville
+    • Coaching factor: Louisville CTF=0.22 (below avg)
+
+  (12) Akron over (5) Texas Tech
+  Long shot (13%)
+  Injury penalty on Texas Tech: -2.3 AdjEM
+  Analyst narrative: Texas Tech lost anchor Toppin to ACL tear. Akron #7 offense with lights-out shooter Tavari Johnson.
+  Key factor: star_injury
+  Model factors:
+    • Model has upset at 13% but injury data warrants review
+    • Injury penalty: -2.3 AdjEM on Texas Tech
+    • COLLAPSE RISK: C. Anderson leads 5 categories (x1.60)
+    • Social narrative matches: star injury confirmed in model
+
+  (13) Hofstra over (4) Alabama
+  Long shot (18%)
+  Injury penalty on Alabama: -0.9 AdjEM
+  Analyst narrative: Speedy Claxton guard-heavy system is nightmare for Alabama inconsistent perimeter defense and rebounding.
+  Key factor: style_mismatch
+  Model factors:
+    • Model has upset at 18% but injury data warrants review
+    • Injury penalty: -0.9 AdjEM on Alabama
+
+  --- CONTRARIAN — Model disagrees with analyst pick ---
+
+  (11) Miami (OH) over (6) Tennessee
+  Long shot (12%)
+  Injury penalty on Tennessee: -0.2 AdjEM
+  Analyst narrative: RedHawks 31-1 led by Pete Suder (42% from 3). Tennessee turnover metrics bottom half of field.
+  Key factor: backcourt_consistency
+  Model factors:
+    • Model disagrees: upset at 12%
+
+----------------------------------------------------------------------
+  SUMMARY: 1 confirmed | 3 blind spots | 1 contrarian
+----------------------------------------------------------------------
+
+  TAKEAWAY: Model independently validates analyst upset picks where noted.
+  Convergence between data model and expert narrative = high-confidence signal.
+
+  REVIEW: Blind spots deserve manual investigation — the model may not
+  fully capture the factor the analysts are citing.
