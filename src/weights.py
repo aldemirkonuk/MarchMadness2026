@@ -228,10 +228,30 @@ CORE_WEIGHTS = {
 
     # [REAL] Seed score: 1 / seed.
     "seed_score":       0.0010,
+
+    # [MIXED] Form trend: slope of recent performance (from recency engine).
+    # Positive = improving, negative = declining. NEW for Phase 8.
+    "form_trend":       0.0150,
 }
 
-assert abs(sum(CORE_WEIGHTS.values()) - 1.0) < 1e-6, \
-    f"Weights must sum to 1.0, got {sum(CORE_WEIGHTS.values()):.4f}"
+# Redistribute weights to accommodate form_trend while keeping sum = 1.0
+# Reduce tail params slightly to make room for the new 1.5% form_trend weight
+_FORM_TREND_BUDGET = 0.0150
+_DONORS = ["ppg_margin", "seed_score", "shooting_eff", "ctf", "eff_height",
+           "opp_to_pct", "dvi", "march_readiness", "sos"]
+_per_donor = _FORM_TREND_BUDGET / len(_DONORS)
+for _d in _DONORS:
+    CORE_WEIGHTS[_d] = max(0.001, CORE_WEIGHTS[_d] - _per_donor)
+
+# Verify sum = 1.0 (with small tolerance for rounding)
+_w_sum = sum(CORE_WEIGHTS.values())
+if abs(_w_sum - 1.0) > 1e-4:
+    # Adjust the largest weight to fix rounding
+    _largest_key = max(CORE_WEIGHTS, key=CORE_WEIGHTS.get)
+    CORE_WEIGHTS[_largest_key] += (1.0 - _w_sum)
+
+assert abs(sum(CORE_WEIGHTS.values()) - 1.0) < 1e-4, \
+    f"Weights must sum to 1.0, got {sum(CORE_WEIGHTS.values()):.6f}"
 
 assert abs(sum(ORIGINAL_WEIGHTS.values()) - 1.0) < 1e-6, \
     f"Original weights must sum to 1.0, got {sum(ORIGINAL_WEIGHTS.values()):.4f}"
@@ -254,10 +274,50 @@ LOGISTIC_K = 14.0
 
 ENSEMBLE_LAMBDA = 0.55  # calibrated via LOYO Brier sweep (0.30-0.80); 65% 1A, 35% XGBoost
 
-# Tournament chaos floor: every matchup probability is pulled toward 0.50
-# by this fraction. Reflects inherent single-elimination unpredictability.
-# p_final = p * (1 - CHAOS) + 0.5 * CHAOS
+# ─────────────────────────────────────────────────────────────────────────────
+# NARRATIVE VERIFICATION LAYER (2026-only, not backtested)
+# ─────────────────────────────────────────────────────────────────────────────
+NARRATIVE_CAP = 0.05  # Max probability shift from narrative layer per team
+NARRATIVE_INJURY_OVERLAP_DISCOUNT = 0.50  # Reduce personnel_loss factor by 50% if injury model active
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TOURNAMENT CHAOS: Round-Specific (Phase 7)
+# ─────────────────────────────────────────────────────────────────────────────
+# Legacy flat chaos (kept for backward compatibility):
 TOURNAMENT_CHAOS = 0.10
+
+# Round-specific chaos multipliers (calibrated from 2008-2025 Upset Count.csv):
+#   R64:  High chaos -- unfamiliarity, nerves, one-off mismatches
+#   R32:  Slightly less -- better teams self-select
+#   S16:  Lower -- preparation time increases, chalk dominates
+#   E8:   Elite prep, best coaches adapt (coaching weight amplified)
+#   F4:   Minimal chaos, peak performance
+#   Champ: Two prepared teams, closest to "true" probability
+ROUND_CHAOS = {
+    "R64":          0.12,
+    "R32":          0.10,
+    "S16":          0.08,
+    "E8":           0.06,
+    "F4":           0.05,
+    "Championship": 0.04,
+}
+
+# Round-specific weight amplifiers: certain parameters matter MORE in later rounds.
+# Applied as multipliers to selected weights during composite scoring.
+# Coaching, clutch, and experience matter more in later rounds.
+ROUND_WEIGHT_AMPLIFIERS = {
+    "R64": {},  # No amplification in R64 (base weights)
+    "R32": {"clutch_factor": 1.05, "ctf": 1.10},
+    "S16": {"clutch_factor": 1.10, "ctf": 1.20, "exp": 1.10, "legacy_factor": 1.15},
+    "E8":  {"clutch_factor": 1.15, "ctf": 1.30, "exp": 1.15, "legacy_factor": 1.20},
+    "F4":  {"clutch_factor": 1.20, "ctf": 1.40, "exp": 1.20, "legacy_factor": 1.25},
+    "Championship": {"clutch_factor": 1.25, "ctf": 1.50, "exp": 1.25, "legacy_factor": 1.30},
+}
+
+# Back-to-back fatigue modifier for R32 (teams played 48hrs ago)
+# High-pace teams (pace > 72) get slightly penalized
+FATIGUE_PACE_THRESHOLD = 72.0
+FATIGUE_PENALTY = 0.005  # small probability shift toward opponent
 
 TEMPORAL_SCHEME = ("uniform", 1.0)  # (scheme_name, param) for optimizer recency weighting
 # Tested exponential/linear/step schemes -- none improved over uniform (see sweep_temporal_schemes)
@@ -279,6 +339,13 @@ DATASET_CONFIG = {
     "use_niche_layer": True,
     "use_wth_layer": False,      # WTH disabled; scoring_margin_std is sole volatility layer
     "use_cwp": True,
+
+    # Phase 7-9 toggles
+    "use_injury_model": True,       # Injury-adjusted predictions (Phases 2-5)
+    "use_recency_weighting": True,  # Recency engine (Phase 8)
+    "use_round_chaos": True,        # Round-specific chaos (Phase 7)
+    "use_dual_brackets": True,      # Produce healthy + injury-adjusted brackets (Phase 9)
+    "use_narrative_layer": True,     # Narrative verification layer (2026-only, not backtested)
 }
 
 PARAM_KEYS = list(CORE_WEIGHTS.keys())

@@ -4,12 +4,17 @@ Runs the full prediction pipeline:
   Phase 1A: Weighted Composite + Logistic + Monte Carlo
   Phase 1B: XGBoost ML Pipeline
   Ensemble: Blend 1A + 1B
+  Phase 7: Round-Specific Chaos Adjustments
+  Phase 8: Recency Weighting
+  Phases 2-5: Injury-Adjusted Predictions
+  Phase 9: Dual Bracket Output (Healthy + Injury-Adjusted)
   Output: Power rankings, bracket picks, championship odds
 """
 
 import sys
 import os
 import time
+import copy
 import numpy as np
 from collections import defaultdict
 
@@ -21,7 +26,7 @@ from src.composite import (
 from src.niche import enrich_niche
 from src.cinderella import cinderella_report
 from src.monte_carlo import simulate_tournament, print_results
-from src.weights import CORE_WEIGHTS, MONTE_CARLO_SIMS, ENSEMBLE_LAMBDA, TOURNAMENT_CHAOS
+from src.weights import CORE_WEIGHTS, MONTE_CARLO_SIMS, ENSEMBLE_LAMBDA, TOURNAMENT_CHAOS, DATASET_CONFIG
 from src.ensemble import blend_all_matchups, disagreement_report
 
 
@@ -29,19 +34,76 @@ def main():
     print("=" * 70)
     print("  NCAA 2026 MARCH MADNESS CHAMPION PREDICTOR")
     print("  Dual-Track Engine: Weighted Composite + XGBoost ML")
+    print("  + Injury Model + Recency Weighting + Round-Specific Chaos")
     print("=" * 70)
 
     # ── Step 1: Load Data ─────────────────────────────────────────────
-    print("\n[1/7] Loading team data from archives...")
+    print("\n[1/9] Loading team data from archives...")
     teams = load_all_teams()
     print(f"  Loaded {len(teams)} teams")
 
     # ── Step 2: Enrich with Niche Metrics ─────────────────────────────
-    print("[2/7] Computing niche metrics (scoring runs, resilience, foul trouble)...")
+    print("[2/9] Computing niche metrics (scoring runs, resilience, foul trouble)...")
     enrich_niche(teams)
 
-    # ── Step 3: Phase 1A -- Composite Scoring ─────────────────────────
-    print("[3/7] Phase 1A: Computing team strengths (31 parameters, weighted composite)...")
+    # ── Step 2b: Phase 8 -- Recency Weighting ─────────────────────────
+    if DATASET_CONFIG.get("use_recency_weighting", False):
+        print("[2b/9] Computing recency-weighted metrics from game logs...")
+        try:
+            from src.recency import compute_recency_metrics, enrich_teams_with_recency, recency_report
+            recency_data = compute_recency_metrics(teams)
+            enrich_teams_with_recency(teams, recency_data)
+            print(f"  Recency metrics computed for {len(recency_data)} teams")
+            print(f"  Momentum now blended with recency weighting (decay λ=0.95)")
+        except Exception as e:
+            import traceback
+            print(f"  WARNING: Recency weighting failed ({e}). Using original momentum.")
+            traceback.print_exc()
+            recency_data = {}
+    else:
+        recency_data = {}
+
+    # ── Save healthy (pre-injury) team copies for dual bracket ────────
+    if DATASET_CONFIG.get("use_dual_brackets", False):
+        teams_healthy = copy.deepcopy(teams)
+    else:
+        teams_healthy = None
+
+    # ── Step 3: Phase 2-3 -- Injury Degradation (Pre-Composite) ──────
+    injury_profiles = {}
+    if DATASET_CONFIG.get("use_injury_model", False):
+        print("[3/9] Loading injuries and computing player impact...")
+        try:
+            from src.injury_model import (
+                load_injuries, quantify_player_impacts,
+                apply_injury_degradation, injury_impact_report,
+            )
+            injuries = load_injuries()
+            if injuries:
+                # Load player data for BPR analysis
+                from src.player_matchup import load_player_data
+                player_df = load_player_data()
+                if player_df.empty:
+                    print("  WARNING: EvanMiya_Players.csv not loaded — using notes-based fallback")
+
+                injury_profiles = quantify_player_impacts(injuries, player_df)
+                teams = apply_injury_degradation(teams, injury_profiles, round_name="R64")
+                print(f"  {len(injuries)} injuries loaded across {len(injury_profiles)} teams")
+                print(f"  Team parameters degraded for R64 availability")
+
+                # Print injury report
+                print(f"\n{injury_impact_report(injury_profiles, 'R64')}")
+            else:
+                print("  No injuries to process")
+        except Exception as e:
+            import traceback
+            print(f"  WARNING: Injury model failed ({e}). Proceeding without adjustments.")
+            traceback.print_exc()
+    else:
+        print("[3/9] Injury model disabled -- skipping")
+
+    # ── Step 4: Phase 1A -- Composite Scoring ─────────────────────────
+    print("[4/9] Phase 1A: Computing team strengths (32 parameters, weighted composite)...")
     teams = compute_team_strengths(teams)
     ranked = rank_teams(teams)
 
@@ -51,7 +113,7 @@ def main():
     for i, t in enumerate(ranked[:25], 1):
         print(f"  {i:<6}{t.seed:<6}{t.name:<25}{t.team_strength:>10.4f}{t.adj_em:>8.1f}{t.net_rating:>5d}{t.barthag:>7.3f}{t.ppg:>6.1f}{t.eff_height:>6.2f}  {t.region}")
 
-    # ── Step 3b: P&R Proxy Metrics ───────────────────────────────────
+    # ── Step 4b: P&R Proxy Metrics ───────────────────────────────────
     try:
         from src.player_matchup import load_player_data, compute_pnr_metrics
         _player_df = load_player_data()
@@ -63,11 +125,11 @@ def main():
     except Exception:
         pass
 
-    # ── Step 4: Cinderella Detection ──────────────────────────────────
+    # ── Step 5: Cinderella Detection ──────────────────────────────────
     print(f"\n{cinderella_report(teams)}")
 
-    # ── Step 5: Matchup Analysis ──────────────────────────────────────
-    print("\n[4/7] Loading matchups and computing win probabilities...")
+    # ── Step 6: Matchup Analysis ──────────────────────────────────────
+    print("\n[5/9] Loading matchups and computing win probabilities...")
     h2h_lookup = build_season_h2h()
     matchups = load_matchups(teams, h2h_lookup)
     matchups = compute_all_matchup_probabilities(matchups)
@@ -76,13 +138,22 @@ def main():
     for m in matchups:
         generate_pros_cons(m)
 
-    # ── Step 6: Phase 1B -- XGBoost ───────────────────────────────────
-    print("[5/7] Phase 1B: Training XGBoost on historical tournament data...")
+    # ── Step 7: Phase 1B -- XGBoost ───────────────────────────────────
+    print("[6/9] Phase 1B: Training XGBoost on historical tournament data...")
     xgb_model = _run_phase_1b(teams, matchups)
 
-    # ── Step 7: Ensemble ──────────────────────────────────────────────
-    print("[6/7] Blending Phase 1A + 1B predictions (ensemble)...")
+    # ── Step 8: Ensemble ──────────────────────────────────────────────
+    print("[7/9] Blending Phase 1A + 1B predictions (ensemble)...")
     matchups = blend_all_matchups(matchups, ENSEMBLE_LAMBDA)
+
+    # ── Step 8b: Phase 5 -- Post-ensemble injury vacuum penalty ──────
+    if DATASET_CONFIG.get("use_injury_model", False) and injury_profiles:
+        try:
+            from src.injury_model import apply_star_vacuum_penalty, injury_matchup_flags
+            matchups = apply_star_vacuum_penalty(matchups, injury_profiles, round_name="R64")
+            print("  Post-ensemble star vacuum penalties applied")
+        except Exception as e:
+            print(f"  WARNING: Star vacuum penalty failed ({e})")
 
     # Print matchup predictions
     _print_matchup_predictions(matchups)
@@ -90,13 +161,42 @@ def main():
     # Disagreement report
     print(f"\n{disagreement_report(matchups)}")
 
-    # ── Step 8: Monte Carlo Simulation ────────────────────────────────
+    # Injury matchup flags
+    if DATASET_CONFIG.get("use_injury_model", False) and injury_profiles:
+        try:
+            from src.injury_model import injury_matchup_flags
+            print(f"\n{injury_matchup_flags(matchups, injury_profiles, 'R64')}")
+        except Exception:
+            pass
+
+    # ── Step 9: Monte Carlo Simulation ────────────────────────────────
     n_sims = MONTE_CARLO_SIMS
-    print(f"\n[7/7] Running Monte Carlo simulation ({n_sims:,} tournaments)...")
+    print(f"\n[8/9] Running Monte Carlo simulation ({n_sims:,} tournaments)...")
     start = time.time()
 
     # Build ensemble prob_func: blends 1A + 1B per matchup using calibrated lambda
     ensemble_prob_func = _build_ensemble_prob_func(xgb_model, h2h_lookup)
+
+    # ── Narrative Verification Layer (post-ensemble, pre-MC) ──────────
+    narrative_data = {}
+    if DATASET_CONFIG.get("use_narrative_layer", False):
+        try:
+            from src.narrative_layer import load_narratives, build_narrative_prob_func
+            narrative_data = load_narratives()
+            if narrative_data:
+                ensemble_prob_func = build_narrative_prob_func(
+                    ensemble_prob_func, narrative_data, injury_profiles
+                )
+                print(f"  Narrative adjustments loaded for {len(narrative_data)} teams")
+            else:
+                print("  No narrative data found — skipping")
+        except Exception as e:
+            import traceback
+            print(f"  WARNING: Narrative layer failed ({e}). Proceeding without.")
+            traceback.print_exc()
+    else:
+        print("  Narrative layer disabled — skipping")
+
     result_ensemble = simulate_tournament(teams, n_simulations=n_sims,
                                            prob_func=ensemble_prob_func,
                                            seed=42, show_progress=True)
@@ -127,16 +227,141 @@ def main():
     except Exception:
         pass
 
+    # Recency report
+    if recency_data:
+        try:
+            from src.recency import recency_report as rec_report
+            print(f"\n{rec_report(teams, recency_data)}")
+        except Exception:
+            pass
+
+    # Narrative audit report
+    if narrative_data:
+        try:
+            from src.narrative_layer import narrative_audit_report
+            print(f"\n{narrative_audit_report(narrative_data, matchups)}")
+        except Exception:
+            pass
+
     # Save results and dashboard
-    _save_results(teams, matchups, result_ensemble)
+    _save_results(teams, matchups, result_ensemble, injury_profiles)
 
     from src.dashboard import save_dashboard, generate_full_report
-    save_dashboard(teams, matchups, result_ensemble)
+    save_dashboard(teams, matchups, result_ensemble, prob_func=ensemble_prob_func)
+
+    # ── Step 10: Dual Bracket (Healthy vs Injury-Adjusted) ───────────
+    if teams_healthy is not None and DATASET_CONFIG.get("use_dual_brackets", False):
+        print(f"\n[9/9] Generating healthy bracket for side-by-side comparison...")
+        _run_healthy_bracket(teams_healthy, h2h_lookup, n_sims, result_ensemble, injury_profiles)
+    else:
+        print(f"\n[9/9] Dual brackets disabled -- skipping healthy bracket")
 
     print("\n" + "=" * 70)
     print("  PREDICTION COMPLETE")
     print("  Results saved to data/results/")
     print("=" * 70)
+
+
+def _run_healthy_bracket(teams_healthy, h2h_lookup, n_sims, result_injury, injury_profiles):
+    """Run the model WITHOUT injury adjustments for side-by-side comparison."""
+    from src.composite import compute_team_strengths
+    from src.recency import compute_recency_metrics, enrich_teams_with_recency
+
+    # Apply recency but NOT injuries
+    if DATASET_CONFIG.get("use_recency_weighting", False):
+        try:
+            recency_data = compute_recency_metrics(teams_healthy)
+            enrich_teams_with_recency(teams_healthy, recency_data)
+        except Exception:
+            pass
+
+    teams_healthy = compute_team_strengths(teams_healthy)
+
+    # Build healthy prob_func (no injury adjustments)
+    from src.equations import composite_score_differential, win_probability_logistic
+    from src.ensemble import _sigmoid
+    from src.weights import ROUND_CHAOS
+
+    def healthy_prob_func(team_a, team_b):
+        z = composite_score_differential(
+            team_a.normalized_params, team_b.normalized_params, CORE_WEIGHTS
+        )
+        h2h_margin = h2h_lookup.get((team_a.name, team_b.name), 0.0)
+        if h2h_margin != 0.0:
+            z += np.clip(h2h_margin / 30.0, -0.05, 0.05) * 0.5
+        return win_probability_logistic(z, k=14.0)
+
+    result_healthy = simulate_tournament(teams_healthy, n_simulations=n_sims,
+                                          prob_func=healthy_prob_func,
+                                          seed=42, show_progress=False)
+
+    # Compare and print delta report
+    _print_dual_bracket_comparison(result_healthy, result_injury, injury_profiles)
+
+
+def _print_dual_bracket_comparison(result_healthy, result_injury, injury_profiles):
+    """Print side-by-side comparison of healthy vs injury-adjusted brackets."""
+    print(f"\n{'='*80}")
+    print("  DUAL BRACKET COMPARISON: HEALTHY vs INJURY-ADJUSTED")
+    print(f"{'='*80}\n")
+
+    odds_h = result_healthy.championship_odds()
+    odds_i = result_injury.championship_odds()
+
+    # Get all teams that appear in either
+    all_teams = set(list(odds_h.keys())[:30]) | set(list(odds_i.keys())[:30])
+
+    # Sort by injury-adjusted championship odds
+    team_data = []
+    for team in all_teams:
+        h_pct = odds_h.get(team, 0) * 100
+        i_pct = odds_i.get(team, 0) * 100
+        delta = i_pct - h_pct
+        team_data.append((team, h_pct, i_pct, delta))
+
+    team_data.sort(key=lambda x: x[2], reverse=True)
+
+    print(f"  {'Team':<22}{'Healthy %':>10}{'Injury %':>10}{'Delta':>10}  {'Impact'}")
+    print(f"  {'-'*70}")
+
+    for team, h_pct, i_pct, delta in team_data[:25]:
+        impact = ""
+        if abs(delta) > 2.0:
+            impact = "*** MAJOR SHIFT ***"
+        elif abs(delta) > 0.5:
+            impact = "* notable *"
+
+        # Check if team has injuries
+        profile = injury_profiles.get(team)
+        if profile and profile.has_star_carrier_out:
+            impact += " [STAR OUT]"
+
+        delta_str = f"{delta:+.1f}%" if delta != 0 else "  --"
+        print(f"  {team:<22}{h_pct:>9.1f}%{i_pct:>9.1f}%{delta_str:>10}  {impact}")
+
+    # Biggest movers
+    print(f"\n  BIGGEST INJURY BENEFICIARIES (opponents weakened):")
+    risers = sorted(team_data, key=lambda x: x[3], reverse=True)[:5]
+    for team, h_pct, i_pct, delta in risers:
+        if delta > 0.1:
+            print(f"    {team:<22} {h_pct:.1f}% -> {i_pct:.1f}% ({delta:+.1f}%)")
+
+    print(f"\n  BIGGEST INJURY CASUALTIES:")
+    fallers = sorted(team_data, key=lambda x: x[3])[:5]
+    for team, h_pct, i_pct, delta in fallers:
+        if delta < -0.1:
+            print(f"    {team:<22} {h_pct:.1f}% -> {i_pct:.1f}% ({delta:+.1f}%)")
+
+    # Save comparison CSV
+    import pandas as pd
+    results_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                "data", "results")
+    comp_data = [{"team": t, "healthy_champ_pct": h, "injury_champ_pct": i, "delta_pct": d}
+                 for t, h, i, d in team_data]
+    pd.DataFrame(comp_data).to_csv(
+        os.path.join(results_dir, "dual_bracket_comparison.csv"), index=False
+    )
+    print(f"\n  Saved: dual_bracket_comparison.csv")
 
 
 def _run_phase_1b(teams, matchups):
@@ -242,9 +467,8 @@ def _build_ensemble_prob_func(xgb_model, h2h_lookup):
         lam = np.clip(ENSEMBLE_LAMBDA + shift, 0.20, 0.85)
         p_ens = lam * p_1a + (1.0 - lam) * p_1b
 
-        # Tournament chaos floor: pull every probability toward 0.50
-        if TOURNAMENT_CHAOS > 0:
-            p_ens = p_ens * (1.0 - TOURNAMENT_CHAOS) + 0.5 * TOURNAMENT_CHAOS
+        # NOTE: Tournament chaos is now applied per-round in _get_win_prob()
+        # so we do NOT apply it here (would double-apply).
 
         _cache[key] = p_ens
         _cache[(team_b.name, team_a.name)] = 1.0 - p_ens
@@ -381,7 +605,7 @@ def _print_upset_analysis(matchups, result):
         print("  No volatile favorites detected.")
 
 
-def _save_results(teams, matchups, result):
+def _save_results(teams, matchups, result, injury_profiles=None):
     """Save results to CSV files."""
     import pandas as pd
 
@@ -393,7 +617,7 @@ def _save_results(teams, matchups, result):
     ranked = sorted(teams, key=lambda t: t.team_strength, reverse=True)
     rankings_data = []
     for i, t in enumerate(ranked, 1):
-        rankings_data.append({
+        row = {
             "rank": i,
             "team": t.name,
             "seed": t.seed,
@@ -414,7 +638,20 @@ def _save_results(teams, matchups, result):
             "injury_rank": t.injury_rank,
             "star_above_avg": round(t.star_above_avg, 3),
             "cinderella": t.is_cinderella,
-        })
+            "form_trend": round(getattr(t, "form_trend", 0.5), 3),
+            "momentum": round(t.momentum, 3),
+        }
+        # Add injury penalty if available
+        if injury_profiles:
+            profile = injury_profiles.get(t.name)
+            if profile:
+                from src.injury_model import _get_round_penalty
+                row["injury_penalty_r64"] = round(_get_round_penalty(t.name, injury_profiles, "R64"), 3)
+                row["star_carrier_out"] = profile.has_star_carrier_out
+            else:
+                row["injury_penalty_r64"] = 0.0
+                row["star_carrier_out"] = False
+        rankings_data.append(row)
     pd.DataFrame(rankings_data).to_csv(
         os.path.join(results_dir, "power_rankings.csv"), index=False
     )
@@ -436,7 +673,7 @@ def _save_results(teams, matchups, result):
     # Matchup predictions
     matchup_data = []
     for m in matchups:
-        matchup_data.append({
+        row = {
             "region": m.region,
             "team_a": m.team_a.name,
             "seed_a": m.team_a.seed,
@@ -447,7 +684,17 @@ def _save_results(teams, matchups, result):
             "prob_a_ensemble": round(m.win_prob_a_ensemble, 3),
             "confidence": round(m.confidence, 3),
             "predicted_winner": m.team_a.name if m.win_prob_a_ensemble > 0.5 else m.team_b.name,
-        })
+        }
+        # Add injury flags
+        if injury_profiles:
+            from src.injury_model import _get_round_penalty
+            pen_a = _get_round_penalty(m.team_a.name, injury_profiles, "R64")
+            pen_b = _get_round_penalty(m.team_b.name, injury_profiles, "R64")
+            row["injury_penalty_a"] = round(pen_a, 3)
+            row["injury_penalty_b"] = round(pen_b, 3)
+            row["injury_shift"] = round(abs(pen_a - pen_b) * 0.02, 3)
+            row["injury_flag"] = abs(pen_a - pen_b) * 0.02 > 0.03
+        matchup_data.append(row)
     pd.DataFrame(matchup_data).to_csv(
         os.path.join(results_dir, "matchup_predictions.csv"), index=False
     )

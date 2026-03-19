@@ -1,0 +1,67 @@
+team,player,position,status,injury_type,earliest_return_round,play_probability_r64,play_probability_r32,play_probability_s16,play_probability_e8,play_probability_f4,play_probability_champ,notes
+Alabama,A. Holloway,G,QUESTIONABLE,Personal,R64,0.30,0.30,0.30,0.30,0.30,0.30,Second-leading scorer - felony arrest - team preparing without him
+Alabama,K. Bristow,F,QUESTIONABLE,Undisclosed,R64,0.35,0.40,0.45,0.50,0.50,0.50,Limited info since Jan
+Alabama,D. Hannah,G,QUESTIONABLE,Undisclosed,R64,0.35,0.40,0.45,0.50,0.50,0.50,Out since late Dec
+Alabama,C. Onyejiaka,C,OUT,Undisclosed,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending
+Arkansas,K. Knox,F,QUESTIONABLE,Torn Meniscus,R64,0.30,0.40,0.50,0.60,0.70,0.75,Post-surgery recovery
+BYU,R. Saunders,G,OUT,Torn ACL,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending - team went 2-4 after injury
+Clemson,C. Welling,F,QUESTIONABLE,Knee,R64,0.35,0.40,0.50,0.55,0.60,0.65,Torn ACL reported but listed questionable
+Clemson,T. Steinour,F,QUESTIONABLE,Undisclosed,R64,0.40,0.45,0.50,0.55,0.60,0.65,Out since mid-Feb
+Clemson,Z. Foster,G,OUT,Knee,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Dec
+Duke,C. Foster,G,OUT,Foot Fracture,E8,0.00,0.05,0.20,0.40,0.60,0.70,Surgery after UNC game Mar 7 - elite perimeter defender - 8.5 PPG 3.6 REB 2.8 AST
+Duke,P. Ngongba II,C,QUESTIONABLE,Foot Soreness,R64,0.55,0.65,0.75,0.80,0.85,0.90,Could play opener vs Siena
+Duke,I. Ufochukwu,C,OUT,Undisclosed,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Out since late Dec
+Gonzaga,B. Huff,F,OUT,Knee Dislocation,S16,0.00,0.10,0.40,0.70,0.85,0.90,Kneecap dislocation Jan - 4-8 week timeline - possible second weekend return
+Illinois,T. Rodgers,G,QUESTIONABLE,Knee,R64,0.40,0.45,0.50,0.55,0.60,0.65,Listed since Oct
+Iowa,P. McCollum,G,OUT,Foot,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Jan
+Iowa State,X. Mitchell,F,QUESTIONABLE,Undisclosed,R64,0.40,0.45,0.50,0.55,0.60,0.65,Out since early Jan
+Iowa State,M. Williams,G,OUT,Hip,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Jun
+Kansas,J. Cross,F,QUESTIONABLE,Undisclosed,R64,0.40,0.50,0.60,0.65,0.70,0.75,Recent - Mar 12
+Kansas,C. Allen,G,QUESTIONABLE,Undisclosed,R64,0.40,0.50,0.60,0.65,0.70,0.75,Recent - Mar 12
+Kansas,W. Thengvall,G,QUESTIONABLE,Undisclosed,R64,0.40,0.50,0.60,0.65,0.70,0.75,Recent - Mar 11
+Kentucky,J. Quaintance,F,DOUBTFUL,Knee,R32,0.10,0.30,0.50,0.65,0.75,0.80,Freshman big man - not expected for opener vs Santa Clara
+Kentucky,B. Hawthorne,F,OUT,Redshirt,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Redshirt - excluded from impact calc
+Kentucky,J. Lowe,G,OUT,Undisclosed,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Out since Jan
+Louisville,M. Brown Jr.,G,OUT,Back,R32,0.00,0.40,0.70,0.85,0.90,0.95,STAR - 18.2 PPG 4.7 AST - announced out until next week - will miss R64 vs South Florida
+Michigan,L. Cason,G,OUT,Torn ACL,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending - best 3PT shooter
+Michigan,W. Grady,G,QUESTIONABLE,Undisclosed,R64,0.40,0.45,0.50,0.55,0.60,0.65,Out since late Jan
+Michigan State,D. Ugochukwu,G,OUT,Foot,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Feb
+Michigan State,K. Glenn,F,OUT,Knee,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending
+Missouri,A. Boateng,G,OUT,Leg,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Out since Jan
+Missouri,J. Porter,F,QUESTIONABLE,Lower Leg,R64,0.35,0.40,0.50,0.55,0.60,0.65,Out since late Dec
+Nebraska,U. Jarusevicius,F,QUESTIONABLE,Undisclosed,R64,0.40,0.45,0.50,0.55,0.60,0.65,Since Jan
+Nebraska,C. Essegian,G,OUT,Ankle,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Nov
+Nebraska,H. Burt,F,QUESTIONABLE,Undisclosed,R64,0.40,0.45,0.50,0.55,0.60,0.65,Since Nov
+North Carolina,C. Wilson,F,OUT,Thumb Fracture,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Projected top-5 pick - season-ending
+North Carolina,J. Brown,C,OUT,Foot,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Out since Jan
+North Carolina,I. Matlekovic,C,QUESTIONABLE,Hand,R64,0.40,0.50,0.55,0.60,0.65,0.70,Since Jan
+Ohio State,T. Chatman,G,QUESTIONABLE,Groin,R64,0.45,0.55,0.65,0.70,0.75,0.80,Missed Big Ten QF vs Michigan - hopeful for TCU opener
+Ohio State,J. Ojianwuna,F,QUESTIONABLE,Knee,R64,0.35,0.40,0.50,0.55,0.60,0.65,Since Oct
+Penn,E. Roberts,G,OUT,Concussion,R32,0.00,0.30,0.50,0.60,0.70,0.75,Concussion protocol
+Penn,D. Williams,G,QUESTIONABLE,Undisclosed,R64,0.40,0.45,0.50,0.55,0.60,0.65,Since Jan
+Penn,R. Altman,G,QUESTIONABLE,Undisclosed,R64,0.40,0.45,0.50,0.55,0.60,0.65,Since Jan
+Saint Mary's,K. Gad,F,OUT,Shoulder,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Dec
+Saint Mary's,H. Wessels,G,EXPECTED,Ankle,R64,0.90,0.92,0.95,0.95,0.95,0.95,Expected to play
+SMU,C. Washington,F,QUESTIONABLE,Undisclosed,R64,0.40,0.50,0.55,0.60,0.65,0.70,Recent - Mar 16
+SMU,B. Edwards,G,EXPECTED,Ankle,R64,0.85,0.88,0.90,0.92,0.95,0.95,Expected to play
+Tennessee,C. Phillips,F,OUT,Shoulder,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Dec
+Tennessee,K. Odih,G,QUESTIONABLE,Leg,R64,0.40,0.45,0.50,0.55,0.60,0.65,Since Feb
+Tennessee,C. Pohto,G,OUT,Hip,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Since Dec
+Tennessee,I. Suljanovic,F,OUT,Knee,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Oct
+Texas,L. Traore,F,QUESTIONABLE,Knee,R64,0.40,0.50,0.60,0.65,0.70,0.75,Since Feb
+Texas A&M,N. Mundey,G,OUT,Redshirt,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Redshirt - excluded from impact calc
+Texas A&M,M. Mgbako,F,OUT,Foot,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Dec
+TCU,M. Diallo,C,OUT,Knee,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Nov
+Texas Tech,J. Toppin,F,OUT,Torn ACL,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending - key player
+Texas Tech,L. Hoover,F,OUT,Redshirt,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Redshirt - excluded from impact calc
+Texas Tech,C. Anderson,G,EXPECTED,Groin,R64,0.85,0.88,0.90,0.92,0.95,0.95,Expected to play
+Texas Tech,L. Watts,F,EXPECTED,Lower Leg,R64,0.85,0.88,0.90,0.92,0.95,0.95,Expected to play
+UCF,T. Jones,G,QUESTIONABLE,Undisclosed,R64,0.35,0.40,0.50,0.55,0.60,0.65,Since Jan
+UCF,K. Jefferson,G,OUT,Knee,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Jan
+UCF,J. Jakstys,C,OUT,Undisclosed,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Since Feb
+UCLA,D. Dent,G,EXPECTED,Calf,R64,0.85,0.88,0.90,0.92,0.95,0.95,Visibly limited in Big Ten tourney - expected to play
+UCLA,T. Bilodeau,F,EXPECTED,Knee Strain,R64,0.85,0.88,0.90,0.92,0.95,0.95,Non-contact strain Mar 13 - expected to play
+UConn,S. Demary Jr.,G,QUESTIONABLE,Ankle Sprain,R64,0.45,0.55,0.65,0.75,0.80,0.85,Mild ankle sprain
+UConn,J. Stewart,F,EXPECTED,Knee Soreness,R64,0.85,0.88,0.90,0.92,0.95,0.95,Expected to play
+Villanova,M. Hodge,F,OUT,Torn ACL,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending
+Wisconsin,N. Winter,F,QUESTIONABLE,Ankle Sprain,R64,0.45,0.55,0.65,0.70,0.75,0.80,Sprained ankle

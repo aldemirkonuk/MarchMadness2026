@@ -34,6 +34,6 @@ src/             Core prediction engine
   utils.py       Normalization, helpers
 data/            Team stats, matchups, venues, historical data
 notebooks/       Jupyter analysis notebooks
-archive-2/       KenPom raw data (7 files)
+archive/         KenPom raw data (13 files)
 archive-3/       Tournament + advanced data (38 files)
 ```

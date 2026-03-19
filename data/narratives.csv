@@ -1,0 +1,15 @@
+team,factor_type,direction,magnitude,confidence,notes
+Texas Tech,personnel_loss,penalty,0.03,high,Toppin ACL tear - model already penalizes via injury model but team morale hit not captured
+Texas Tech,tactical_counter,penalty,0.02,medium,Akron's top-7 offense exploits loss of defensive anchor Toppin
+Louisville,coach_history,penalty,0.02,medium,Kelsey 0-5 career in tournament - first-time tourney pressure
+Louisville,personnel_loss,penalty,0.02,high,Mikel Brown Jr. OUT for R64 - 18.2 PPG 4.7 AST star - huge advantage for South Florida
+South Florida,tactical_counter,bonus,0.02,high,Louisville's star Brown Jr. out for R64 - USF faces depleted backcourt
+Miami OH,momentum,bonus,0.02,medium,31-1 record - Pete Suder 42% from 3 - mid-major darling narrative
+Akron,momentum,bonus,0.02,medium,Top-7 offense nationally with Tavari Johnson - lights-out shooting
+Hofstra,tactical_counter,bonus,0.02,medium,Speedy Claxton guard-heavy system is nightmare for Alabama perimeter defense
+Florida,public_bias,penalty,0.02,medium,Weakest 1-seed per KenPom/Barttorvik consensus - public eyeing early exit
+Alabama,personnel_loss,penalty,0.02,high,Holloway felony arrest - second-leading scorer - locker room distraction
+South Florida,momentum,bonus,0.02,medium,Izaiyah Nelson touted as best mid-major player in field
+TCU,tactical_counter,bonus,0.01,medium,Physical Big 12 team vs Ohio State's 174th-ranked defense
+Michigan,personnel_loss,penalty,0.02,high,L.J. Cason ACL tear - best 3PT shooter - public very skeptical of Wolverines
+North Carolina,personnel_loss,penalty,0.02,high,Cade Wilson projected top-5 pick out for season - massive offensive void

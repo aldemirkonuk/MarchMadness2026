@@ -13,21 +13,43 @@ from src.equations import (
 from src.utils import canonical_name, safe_float, SEED_EXPECTED_ROUND
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ARCHIVE2 = os.path.join(BASE_DIR, "archive-2")
+ARCHIVE = os.path.join(BASE_DIR, "archive")
 ARCHIVE3 = os.path.join(BASE_DIR, "archive-3")
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
 
 def _load_csv(directory: str, filename: str) -> Optional[pd.DataFrame]:
     path = os.path.join(directory, filename)
-    if os.path.exists(path):
+    if not os.path.exists(path):
+        return None
+    size = os.path.getsize(path)
+    if size == 0:
+        raise ValueError(
+            f"\n\n❌  EMPTY DATA FILE: {filename}\n"
+            f"   Path: {path}\n"
+            f"   The file exists but contains no data (0 bytes).\n"
+            f"   Fix: Re-export this file from your data source (KenPom/Barttorvik)\n"
+            f"        or restore it from a backup.\n"
+        )
+    try:
         return pd.read_csv(path)
-    return None
+    except pd.errors.EmptyDataError:
+        # File exists but is unreadable (corrupted, wrong format, or macOS quarantine).
+        # Return None so callers can fall back to defaults instead of crashing.
+        import warnings
+        warnings.warn(
+            f"Unreadable data file: {filename} ({path}) — "
+            f"{size} bytes but pandas cannot parse. Using defaults. "
+            f"Re-export from your data source to restore full data.",
+            UserWarning,
+            stacklevel=2,
+        )
+        return None
 
 
 def _build_coach_map() -> Dict[str, str]:
-    """Map team name -> coach name from archive-2."""
-    df = _load_csv(ARCHIVE2, "REF _ Current NCAAM Coaches (2026).csv")
+    """Map team name -> coach name from archive."""
+    df = _load_csv(ARCHIVE, "REF _ Current NCAAM Coaches (2026).csv")
     if df is None:
         return {}
     coach_map = {}
@@ -216,7 +238,10 @@ def _build_evanmiya_players() -> Dict[str, dict]:
     path = os.path.join(DATA_DIR, "EvanMiya_Players.csv")
     if not os.path.exists(path):
         return {}
-    df = pd.read_csv(path)
+    try:
+        df = pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return {}
     result = {}
     for team_name, grp in df.groupby("team"):
         cname = canonical_name(str(team_name).strip())
@@ -241,7 +266,10 @@ def _build_evanmiya_teams() -> Dict[str, dict]:
     path = os.path.join(DATA_DIR, "EvanMiya_Teams.csv")
     if not os.path.exists(path):
         return {}
-    df = pd.read_csv(path)
+    try:
+        df = pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return {}
     result = {}
     for _, row in df.iterrows():
         cname = canonical_name(str(row["team"]).strip())
@@ -351,7 +379,7 @@ def _build_shooting_splits() -> Dict[str, dict]:
 
 def _build_bench_exp() -> Dict[str, dict]:
     """Bench scoring % and experience from KenPom Height."""
-    df = _load_csv(ARCHIVE2, "INT _ KenPom _ Height.csv")
+    df = _load_csv(ARCHIVE, "INT _ KenPom _ Height.csv")
     if df is None:
         return {}
     df_2026 = df[df["Season"] == 2026]
@@ -367,7 +395,7 @@ def _build_bench_exp() -> Dict[str, dict]:
 
 def _build_misc_stats() -> Dict[str, dict]:
     """Steal rate and other misc stats from KenPom Miscellaneous."""
-    df = _load_csv(ARCHIVE2, "INT _ KenPom _ Miscellaneous Team Stats.csv")
+    df = _load_csv(ARCHIVE, "INT _ KenPom _ Miscellaneous Team Stats.csv")
     if df is None:
         return {}
     df_2026 = df[df["Season"] == 2026]

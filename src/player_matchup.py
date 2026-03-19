@@ -17,9 +17,12 @@ from src.models import Team
 
 def load_player_data() -> pd.DataFrame:
     """Load EvanMiya player data with team name normalization."""
+    import os
+    _base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    _path = os.path.join(_base, "data", "EvanMiya_Players.csv")
     try:
-        df = pd.read_csv("data/EvanMiya_Players.csv")
-    except FileNotFoundError:
+        df = pd.read_csv(_path)
+    except (FileNotFoundError, pd.errors.EmptyDataError):
         return pd.DataFrame()
 
     name_map = {

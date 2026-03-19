@@ -73,6 +73,10 @@ class Team:
     chaos_index: float = 0.0
     three_pt_std: float = 0.0
 
+    # Phase 8: Recency-weighted metrics
+    form_trend: float = 0.5           # normalized slope of recent performance [0,1]
+    recency_rating_norm: float = 0.5  # normalized recency-weighted margin [0,1]
+
     # Computed scores
     team_strength: float = 0.0
     normalized_params: dict = field(default_factory=dict)

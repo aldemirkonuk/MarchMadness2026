@@ -6,15 +6,160 @@ Can be run standalone or imported for notebook use.
 import os
 import pandas as pd
 import numpy as np
-from typing import List, Dict
+from typing import List, Dict, Callable, Optional
 
 from src.models import Team, Matchup, SimulationResult
 from src.weights import CORE_WEIGHTS
 
 
+BRACKET_SEEDS = [
+    (1, 16), (8, 9), (5, 12), (4, 13),
+    (6, 11), (3, 14), (7, 10), (2, 15),
+]
+REGIONS = ["East", "West", "South", "Midwest"]
+
+ROUND_LABELS = {
+    "R32": "ROUND OF 32 PREDICTIONS (Deterministic Bracket)",
+    "S16": "SWEET 16 PREDICTIONS (Deterministic Bracket)",
+    "E8":  "ELITE 8 PREDICTIONS (Deterministic Bracket)",
+    "F4":  "FINAL FOUR (Deterministic Bracket)",
+    "Championship": "CHAMPIONSHIP GAME (Deterministic Bracket)",
+}
+
+
+def _generate_bracket_progression(teams: List[Team],
+                                  matchups: List[Matchup],
+                                  prob_func: Callable) -> str:
+    """Build a deterministic 'chalk bracket' from R32 through Championship.
+
+    At each round, the higher-probability team advances. Uses the full
+    ensemble prob_func (with injury, narrative, chaos layers) via the
+    same _get_win_prob helper that Monte Carlo uses.
+    """
+    from src.monte_carlo import _get_win_prob
+
+    team_lookup: Dict[str, Team] = {t.name: t for t in teams}
+    lines: List[str] = []
+
+    # --- Step 1: determine R64 winners per region -----------------------
+    region_matchups: Dict[str, List[Matchup]] = {}
+    for m in matchups:
+        region_matchups.setdefault(m.region, []).append(m)
+
+    region_r64_winners: Dict[str, List[Team]] = {}
+    for region in REGIONS:
+        rms = region_matchups.get(region, [])
+        seed_to_matchup: Dict[int, Matchup] = {}
+        for m in rms:
+            lower_seed = min(m.team_a.seed, m.team_b.seed)
+            seed_to_matchup[lower_seed] = m
+        winners: List[Team] = []
+        for s1, s2 in BRACKET_SEEDS:
+            m = seed_to_matchup.get(s1)
+            if m is None:
+                continue
+            winner = m.team_a if m.win_prob_a_ensemble > 0.5 else m.team_b
+            winners.append(winner)
+        region_r64_winners[region] = winners
+
+    # --- Step 2: walk through R32, S16, E8 per region -------------------
+    round_matchups: Dict[str, List[tuple]] = {}  # round_name -> [(team_a, team_b, prob_a, region)]
+    region_champions: Dict[str, Team] = {}
+
+    for region in REGIONS:
+        bracket = list(region_r64_winners.get(region, []))
+        if len(bracket) < 8:
+            continue
+
+        # R32: 4 games
+        r32_winners: List[Team] = []
+        for i in range(0, 8, 2):
+            ta, tb = bracket[i], bracket[i + 1]
+            p = _get_win_prob(ta, tb, prob_func, "R32")
+            round_matchups.setdefault("R32", []).append((ta, tb, p, region))
+            r32_winners.append(ta if p >= 0.5 else tb)
+
+        # S16: 2 games
+        s16_winners: List[Team] = []
+        for i in range(0, 4, 2):
+            ta, tb = r32_winners[i], r32_winners[i + 1]
+            p = _get_win_prob(ta, tb, prob_func, "S16")
+            round_matchups.setdefault("S16", []).append((ta, tb, p, region))
+            s16_winners.append(ta if p >= 0.5 else tb)
+
+        # E8: 1 game
+        ta, tb = s16_winners[0], s16_winners[1]
+        p = _get_win_prob(ta, tb, prob_func, "E8")
+        round_matchups.setdefault("E8", []).append((ta, tb, p, region))
+        region_champions[region] = ta if p >= 0.5 else tb
+
+    # --- Step 3: Final Four (East vs West, South vs Midwest) -----------
+    f4_teams = [region_champions.get(r) for r in REGIONS]
+    if all(t is not None for t in f4_teams):
+        # Semi 1: East vs West
+        ta, tb = f4_teams[0], f4_teams[1]
+        p = _get_win_prob(ta, tb, prob_func, "F4")
+        round_matchups.setdefault("F4", []).append((ta, tb, p, "Semi 1 (East vs West)"))
+        semi1 = ta if p >= 0.5 else tb
+
+        # Semi 2: South vs Midwest
+        ta, tb = f4_teams[2], f4_teams[3]
+        p = _get_win_prob(ta, tb, prob_func, "F4")
+        round_matchups["F4"].append((ta, tb, p, "Semi 2 (South vs Midwest)"))
+        semi2 = ta if p >= 0.5 else tb
+
+        # Championship
+        p = _get_win_prob(semi1, semi2, prob_func, "Championship")
+        round_matchups["Championship"] = [(semi1, semi2, p, "National Championship")]
+
+    # --- Step 4: format output -----------------------------------------
+    for rnd in ["R32", "S16", "E8", "F4", "Championship"]:
+        games = round_matchups.get(rnd, [])
+        if not games:
+            continue
+        label = ROUND_LABELS.get(rnd, rnd)
+        lines.append("\n" + "=" * 72)
+        lines.append(f"  {label}")
+        lines.append("=" * 72)
+
+        current_region = ""
+        for ta, tb, prob_a, region in games:
+            if region != current_region:
+                current_region = region
+                lines.append(f"\n  === {current_region.upper()} ===")
+
+            winner = ta if prob_a >= 0.5 else tb
+            wp = prob_a if prob_a >= 0.5 else 1.0 - prob_a
+
+            upset = ""
+            if winner.seed > min(ta.seed, tb.seed):
+                upset = "UPSET"
+
+            if wp >= 0.85:
+                conf_label = "LOCK"
+            elif wp >= 0.70:
+                conf_label = "SOLID"
+            elif wp >= 0.60:
+                conf_label = "LEAN"
+            else:
+                conf_label = "COIN FLIP"
+
+            lines.append(
+                f"  ({ta.seed:2d}) {ta.name:<20s} vs ({tb.seed:2d}) {tb.name:<20s}"
+            )
+            lines.append(
+                f"       PICK: {winner.name} ({wp:.1%}) [{conf_label}]  Round: {rnd}"
+                f"  {upset}"
+            )
+            lines.append("")
+
+    return "\n".join(lines)
+
+
 def generate_full_report(teams: List[Team],
                          matchups: List[Matchup],
-                         result: SimulationResult) -> str:
+                         result: SimulationResult,
+                         prob_func: Optional[Callable] = None) -> str:
     """Generate a comprehensive text-based dashboard."""
     lines = []
 
@@ -97,6 +242,10 @@ def generate_full_report(teams: List[Team],
             lines.append(f"         {f}")
         lines.append("")
 
+    # Bracket Progression (R32 through Championship)
+    if prob_func is not None:
+        lines.append(_generate_bracket_progression(teams, matchups, prob_func))
+
     # Weight Configuration
     lines.append("\n" + "=" * 72)
     lines.append("  WEIGHT CONFIGURATION")
@@ -122,7 +271,7 @@ def generate_full_report(teams: List[Team],
     return "\n".join(lines)
 
 
-def save_dashboard(teams, matchups, result, output_dir=None):
+def save_dashboard(teams, matchups, result, output_dir=None, prob_func=None):
     """Save all dashboard outputs to files."""
     if output_dir is None:
         output_dir = os.path.join(
@@ -132,7 +281,7 @@ def save_dashboard(teams, matchups, result, output_dir=None):
     os.makedirs(output_dir, exist_ok=True)
 
     # Full text report
-    report = generate_full_report(teams, matchups, result)
+    report = generate_full_report(teams, matchups, result, prob_func=prob_func)
     with open(os.path.join(output_dir, "full_report.txt"), "w") as f:
         f.write(report)
 

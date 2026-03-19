@@ -93,6 +93,21 @@ TEAM_NAME_MAP = {
     "Prairie View": "Prairie View A&M",
     "South Florida": "South Florida",
     "USF": "South Florida",
+    "UConn": "Connecticut",
+    "Uconn": "Connecticut",
+    "UCONN": "Connecticut",
+    "Michigan St": "Michigan State",
+    "Michigan St.": "Michigan State",
+    "Iowa St": "Iowa State",
+    "Iowa St.": "Iowa State",
+    "Ohio St": "Ohio State",
+    "Ohio St.": "Ohio State",
+    "Texas A&M": "Texas A&M",
+    "Mich St": "Michigan State",
+    "Mich State": "Michigan State",
+    "Penn": "Penn",
+    "Upenn": "Penn",
+    "UPenn": "Penn",
 }
 
 

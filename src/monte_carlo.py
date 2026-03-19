@@ -2,6 +2,9 @@
 
 Shared by Phase 1A, Phase 1B, and Ensemble.
 Simulates the full 63-game tournament bracket N times.
+
+Phase 7: Round-specific chaos multipliers replace the flat TOURNAMENT_CHAOS.
+Phase 4: Injury round-by-round availability integrated via injury_profiles.
 """
 
 import numpy as np
@@ -11,7 +14,10 @@ from tqdm import tqdm
 
 from src.models import Team, Matchup, SimulationResult
 from src.equations import win_probability_logistic
-from src.weights import CORE_WEIGHTS, LOGISTIC_K
+from src.weights import (
+    CORE_WEIGHTS, LOGISTIC_K, TOURNAMENT_CHAOS, DATASET_CONFIG,
+    ROUND_CHAOS, ROUND_WEIGHT_AMPLIFIERS, FATIGUE_PACE_THRESHOLD, FATIGUE_PENALTY,
+)
 
 
 # Round of 64 matchup indices within each region (seed-based bracket)
@@ -26,39 +32,82 @@ REGIONS = ["East", "West", "South", "Midwest"]
 
 
 def _get_win_prob(team_a: Team, team_b: Team,
-                  prob_func: Optional[Callable] = None) -> float:
+                  prob_func: Optional[Callable] = None,
+                  round_name: str = "R64") -> float:
     """Compute win probability for team_a vs team_b.
 
     Uses scoring_margin_std as the sole volatility layer (WTH disabled).
+    Phase 7: Applies round-specific chaos floor instead of flat TOURNAMENT_CHAOS.
     """
     if prob_func is not None:
-        return prob_func(team_a, team_b)
+        p = prob_func(team_a, team_b)
+    else:
+        from src.equations import composite_score_differential
+        z = composite_score_differential(
+            team_a.normalized_params,
+            team_b.normalized_params,
+            CORE_WEIGHTS,
+        )
+        p = win_probability_logistic(z, k=LOGISTIC_K)
 
-    from src.equations import composite_score_differential
-    z = composite_score_differential(
-        team_a.normalized_params,
-        team_b.normalized_params,
-        CORE_WEIGHTS,
-    )
-    p = win_probability_logistic(z, k=LOGISTIC_K)
+        # Volatility adjustment from scoring_margin_std:
+        # high-variance favorites get pulled toward 0.5 (less reliable)
+        std_a = getattr(team_a, "scoring_margin_std", 0)
+        std_b = getattr(team_b, "scoring_margin_std", 0)
+        combined_vol = (std_a + std_b) / 2.0
+        if combined_vol > 12.0:
+            vol_pull = min(0.06, (combined_vol - 12.0) * 0.01)
+            p = p * (1.0 - vol_pull) + 0.5 * vol_pull
 
-    # Volatility adjustment from scoring_margin_std:
-    # high-variance favorites get pulled toward 0.5 (less reliable)
-    std_a = getattr(team_a, "scoring_margin_std", 0)
-    std_b = getattr(team_b, "scoring_margin_std", 0)
-    combined_vol = (std_a + std_b) / 2.0
-    if combined_vol > 12.0:
-        vol_pull = min(0.06, (combined_vol - 12.0) * 0.01)
-        p = p * (1.0 - vol_pull) + 0.5 * vol_pull
+    # ── Phase 7: Round-specific weight amplifiers ──
+    # In later rounds, coaching, clutch, experience, and legacy matter more.
+    # We can't re-run composite scoring per round, so instead we compute
+    # the differential in amplified parameters and shift probability.
+    amplifiers = ROUND_WEIGHT_AMPLIFIERS.get(round_name, {})
+    if amplifiers and DATASET_CONFIG.get("use_round_chaos", False):
+        amp_shift = 0.0
+        norm_a = getattr(team_a, "normalized_params", {})
+        norm_b = getattr(team_b, "normalized_params", {})
+        if norm_a and norm_b:
+            for param, multiplier in amplifiers.items():
+                base_weight = CORE_WEIGHTS.get(param, 0)
+                bonus_weight = base_weight * (multiplier - 1.0)  # extra weight portion
+                val_a = norm_a.get(param, 0.5)
+                val_b = norm_b.get(param, 0.5)
+                # Shift = bonus_weight * (team_a advantage - team_b advantage)
+                amp_shift += bonus_weight * (val_a - val_b)
+            # Convert composite-score shift to probability shift
+            # Using same logistic sensitivity: ~2% prob per 0.01 composite
+            p += amp_shift * 0.5
+            p = np.clip(p, 0.02, 0.98)
 
-    return p
+    # ── Phase 7: Round-specific chaos floor ──
+    if DATASET_CONFIG.get("use_round_chaos", False):
+        chaos = ROUND_CHAOS.get(round_name, TOURNAMENT_CHAOS)
+    else:
+        chaos = TOURNAMENT_CHAOS
+
+    if chaos > 0:
+        p = p * (1.0 - chaos) + 0.5 * chaos
+
+    # ── Phase 7: Back-to-back fatigue in R32 ──
+    if round_name == "R32":
+        pace_a = getattr(team_a, "pace", 68)
+        pace_b = getattr(team_b, "pace", 68)
+        if pace_a > FATIGUE_PACE_THRESHOLD and pace_b <= FATIGUE_PACE_THRESHOLD:
+            p -= FATIGUE_PENALTY  # team A is fast-paced, slightly fatigued
+        elif pace_b > FATIGUE_PACE_THRESHOLD and pace_a <= FATIGUE_PACE_THRESHOLD:
+            p += FATIGUE_PENALTY  # team B is fast-paced, slightly fatigued
+
+    return np.clip(p, 0.02, 0.98)
 
 
 def simulate_single_game(team_a: Team, team_b: Team,
                           rng: np.random.Generator,
-                          prob_func=None) -> Team:
+                          prob_func=None,
+                          round_name: str = "R64") -> Team:
     """Simulate one game, return the winner."""
-    p = _get_win_prob(team_a, team_b, prob_func)
+    p = _get_win_prob(team_a, team_b, prob_func, round_name)
     return team_a if rng.random() < p else team_b
 
 
@@ -66,6 +115,7 @@ def simulate_region(teams_by_seed: Dict[int, Team],
                     rng: np.random.Generator,
                     prob_func=None) -> Tuple[Team, dict]:
     """Simulate a region bracket through Elite 8. Returns region champion + results."""
+    # Round of 64 (8 games)
     bracket = []
     for s1, s2 in BRACKET_SEEDS:
         t1 = teams_by_seed.get(s1)
@@ -73,26 +123,26 @@ def simulate_region(teams_by_seed: Dict[int, Team],
         if t1 is None or t2 is None:
             bracket.append(t1 or t2)
         else:
-            bracket.append(simulate_single_game(t1, t2, rng, prob_func))
+            bracket.append(simulate_single_game(t1, t2, rng, prob_func, "R64"))
 
     results = {t.name: "R64" for t in bracket}
 
     # Round of 32 (4 games)
     r32 = []
     for i in range(0, 8, 2):
-        winner = simulate_single_game(bracket[i], bracket[i + 1], rng, prob_func)
+        winner = simulate_single_game(bracket[i], bracket[i + 1], rng, prob_func, "R32")
         r32.append(winner)
         results[winner.name] = "R32"
 
     # Sweet 16 (2 games)
     s16 = []
     for i in range(0, 4, 2):
-        winner = simulate_single_game(r32[i], r32[i + 1], rng, prob_func)
+        winner = simulate_single_game(r32[i], r32[i + 1], rng, prob_func, "S16")
         s16.append(winner)
         results[winner.name] = "S16"
 
     # Elite 8 (1 game)
-    champion = simulate_single_game(s16[0], s16[1], rng, prob_func)
+    champion = simulate_single_game(s16[0], s16[1], rng, prob_func, "E8")
     results[champion.name] = "E8"
 
     return champion, results
@@ -162,11 +212,11 @@ def simulate_tournament(teams: List[Team],
             result.final_four_counts[t.name] += 1
 
         # Semifinals (bracket order: East vs West, South vs Midwest)
-        semi1 = simulate_single_game(final_four[0], final_four[1], rng, prob_func)
-        semi2 = simulate_single_game(final_four[2], final_four[3], rng, prob_func)
+        semi1 = simulate_single_game(final_four[0], final_four[1], rng, prob_func, "F4")
+        semi2 = simulate_single_game(final_four[2], final_four[3], rng, prob_func, "F4")
 
         # Championship
-        champion = simulate_single_game(semi1, semi2, rng, prob_func)
+        champion = simulate_single_game(semi1, semi2, rng, prob_func, "Championship")
         result.champion_counts[champion.name] += 1
 
     return result
