@@ -93,19 +93,19 @@ def _generate_bracket_progression(teams: List[Team],
         round_matchups.setdefault("E8", []).append((ta, tb, p, region))
         region_champions[region] = ta if p >= 0.5 else tb
 
-    # --- Step 3: Final Four (East vs West, South vs Midwest) -----------
+    # --- Step 3: Final Four (East vs South, West vs Midwest) -----------
     f4_teams = [region_champions.get(r) for r in REGIONS]
     if all(t is not None for t in f4_teams):
-        # Semi 1: East vs West
-        ta, tb = f4_teams[0], f4_teams[1]
+        # Semi 1: East vs South
+        ta, tb = f4_teams[0], f4_teams[2]
         p = _get_win_prob(ta, tb, prob_func, "F4")
-        round_matchups.setdefault("F4", []).append((ta, tb, p, "Semi 1 (East vs West)"))
+        round_matchups.setdefault("F4", []).append((ta, tb, p, "Semi 1 (East vs South)"))
         semi1 = ta if p >= 0.5 else tb
 
-        # Semi 2: South vs Midwest
-        ta, tb = f4_teams[2], f4_teams[3]
+        # Semi 2: West vs Midwest
+        ta, tb = f4_teams[1], f4_teams[3]
         p = _get_win_prob(ta, tb, prob_func, "F4")
-        round_matchups["F4"].append((ta, tb, p, "Semi 2 (South vs Midwest)"))
+        round_matchups["F4"].append((ta, tb, p, "Semi 2 (West vs Midwest)"))
         semi2 = ta if p >= 0.5 else tb
 
         # Championship

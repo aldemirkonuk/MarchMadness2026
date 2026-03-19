@@ -211,9 +211,9 @@ def simulate_tournament(teams: List[Team],
         for t in final_four:
             result.final_four_counts[t.name] += 1
 
-        # Semifinals (bracket order: East vs West, South vs Midwest)
-        semi1 = simulate_single_game(final_four[0], final_four[1], rng, prob_func, "F4")
-        semi2 = simulate_single_game(final_four[2], final_four[3], rng, prob_func, "F4")
+        # Semifinals (bracket order: East vs South, West vs Midwest)
+        semi1 = simulate_single_game(final_four[0], final_four[2], rng, prob_func, "F4")
+        semi2 = simulate_single_game(final_four[1], final_four[3], rng, prob_func, "F4")
 
         # Championship
         champion = simulate_single_game(semi1, semi2, rng, prob_func, "Championship")

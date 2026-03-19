@@ -46,6 +46,11 @@ STAR_CARRIER_THRESHOLD = 0.30
 # in case of pathological BPR distributions)
 MAX_ADJEM_PENALTY = 8.0
 
+# Per-player penalty cap: no single player's absence should produce a raw
+# penalty exceeding this value. With the ~5.5x AdjEM scaling, 0.35 raw ≈
+# 1.9 AdjEM — consistent with the worst historical cases (MASH Unit).
+MAX_SINGLE_PLAYER_PENALTY = 0.35
+
 # Non-effectant filter: if a player's possessions share is below this
 # threshold, the team's season stats already reflect their absence —
 # penalizing again would be double-counting.
@@ -64,6 +69,29 @@ _EARLY_ABSENCE_MONTHS = {
 RAMPUP_BASE = 0.65
 RAMPUP_INCREMENT = 0.10
 RAMPUP_CAP = 0.90
+
+# Multi-category leader amplifier: if an injured player leads their team
+# in N of the tracked BPR categories (obpr, dbpr, bpr, poss, plus_minus,
+# box_obpr, box_dbpr, box_bpr), the penalty is amplified.
+#
+# Rationale: a player who leads 1 category is replaceable. A player who
+# leads 3+ is the HUB — the team's offense, defense, and system all run
+# through them. No single replacement can fill multiple roles, so the
+# loss compounds across dimensions.
+MULTI_CAT_LEADER_CATEGORIES = ["obpr", "dbpr", "bpr", "poss", "plus_minus",
+                                "box_obpr", "box_dbpr", "box_bpr"]
+MULTI_CAT_AMPLIFIER_2 = 1.15      # leads 2 categories → minor two-dimensional loss
+MULTI_CAT_AMPLIFIER_3 = 1.30      # leads 3 categories → system hub
+MULTI_CAT_AMPLIFIER_4 = 1.45      # leads 4 categories → team identity loss
+MULTI_CAT_AMPLIFIER_5PLUS = 1.60  # leads 5+ categories → complete collapse (capped)
+
+# Collapse detection: when a multi-category leader ALSO has dominant
+# share of the team's production, the loss is systemic — the team can't
+# just "spread the load" because there's nobody who can fill any of the
+# roles adequately.
+COLLAPSE_CATS_THRESHOLD = 4       # must lead at least 4 categories (stronger signal)
+COLLAPSE_BPR_SHARE_THRESHOLD = 0.20  # AND have >= 20% of team BPR
+COLLAPSE_ADDITIONAL_PENALTY = 0.10   # flat additional AdjEM penalty for system breakdown
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -95,6 +123,9 @@ class InjuredPlayer:
     penalty: float = 0.0             # (BPR × min_share) × (1 - replacement_factor)
     is_star_carrier: bool = False     # BPR share > threshold
     position_scarcity: int = 0       # count of same-position players in top-8
+    categories_led: int = 0          # how many stat categories this player leads on team
+    multi_cat_amplifier: float = 1.0 # penalty multiplier from multi-category leadership
+    collapse_risk: bool = False      # True if multi-cat leader + high BPR share → system breakdown
 
     notes: str = ""
 
@@ -332,6 +363,52 @@ def quantify_player_impacts(injuries: List[InjuredPlayer],
                 # Position scarcity
                 ip.position_scarcity = len(pos_matches) if 'pos_matches' in dir() else len(available)
 
+                # Multi-category leader amplifier
+                cats_led = 0
+                for cat_col in MULTI_CAT_LEADER_CATEGORIES:
+                    if cat_col in team_players.columns:
+                        team_leader_val = team_players[cat_col].max()
+                        player_val = float(player_match.get(cat_col, 0))
+                        if player_val >= team_leader_val and team_leader_val > 0:
+                            cats_led += 1
+                ip.categories_led = cats_led
+                if cats_led >= 5:
+                    ip.multi_cat_amplifier = MULTI_CAT_AMPLIFIER_5PLUS
+                    ip.penalty *= MULTI_CAT_AMPLIFIER_5PLUS
+                elif cats_led == 4:
+                    ip.multi_cat_amplifier = MULTI_CAT_AMPLIFIER_4
+                    ip.penalty *= MULTI_CAT_AMPLIFIER_4
+                elif cats_led == 3:
+                    ip.multi_cat_amplifier = MULTI_CAT_AMPLIFIER_3
+                    ip.penalty *= MULTI_CAT_AMPLIFIER_3
+                elif cats_led == 2:
+                    ip.multi_cat_amplifier = MULTI_CAT_AMPLIFIER_2
+                    ip.penalty *= MULTI_CAT_AMPLIFIER_2
+
+                # Collapse detection: multi-cat leader + high BPR share
+                # = systemic breakdown. The team can't "spread the load"
+                # because this player WAS the system.
+                if (cats_led >= COLLAPSE_CATS_THRESHOLD
+                        and ip.bpr_share >= COLLAPSE_BPR_SHARE_THRESHOLD):
+                    ip.collapse_risk = True
+                    ip.penalty += COLLAPSE_ADDITIONAL_PENALTY
+
+                # PPG floor: BPR is an efficiency metric and can undervalue
+                # high-volume scorers on deep teams. If notes show high PPG,
+                # enforce a minimum penalty that reflects actual production.
+                ppg = _extract_ppg_from_notes(ip.notes)
+                if ppg > 0:
+                    for ppg_threshold in sorted(PPG_PENALTY_FLOOR.keys(), reverse=True):
+                        if ppg >= ppg_threshold:
+                            floor = PPG_PENALTY_FLOOR[ppg_threshold]
+                            if ip.penalty < floor:
+                                ip.penalty = floor
+                            break
+
+                # Per-player cap: prevent any single absence from producing
+                # a penalty beyond historical bounds.
+                ip.penalty = min(ip.penalty, MAX_SINGLE_PLAYER_PENALTY)
+
             else:
                 # Player not found in roster data at all.
                 # This is a strong signal they never played (or played so
@@ -358,8 +435,16 @@ def quantify_player_impacts(injuries: List[InjuredPlayer],
                 else:
                     # Player not found but may be a real contributor
                     # (name mismatch, or notes suggest they were active).
-                    # Use role-based fallback penalty.
+                    # Use role-based fallback, boosted by PPG floor if available.
                     ip.penalty = _role_penalty(ip.status)
+                    ppg = _extract_ppg_from_notes(ip.notes)
+                    if ppg > 0:
+                        for ppg_threshold in sorted(PPG_PENALTY_FLOOR.keys(), reverse=True):
+                            if ppg >= ppg_threshold:
+                                floor = PPG_PENALTY_FLOOR[ppg_threshold]
+                                if ip.penalty < floor:
+                                    ip.penalty = floor
+                                break
 
             # Star carrier detection (only for effectant players)
             if not ip.non_effectant:
@@ -395,6 +480,38 @@ def _is_non_effectant_by_notes(notes: str) -> Tuple[bool, str]:
     # unless we have a clear month signal.
 
     return False, ""
+
+
+def _extract_ppg_from_notes(notes: str) -> float:
+    """Extract PPG (points per game) from injury notes if present.
+
+    Looks for patterns like "18.2 PPG", "22.5 ppg", etc.
+    Returns 0.0 if not found.
+    """
+    import re
+    match = re.search(r'(\d+\.?\d*)\s*ppg', notes.lower())
+    if match:
+        return float(match.group(1))
+    return 0.0
+
+
+def _extract_apg_from_notes(notes: str) -> float:
+    """Extract APG (assists per game) from notes. Returns 0.0 if not found."""
+    import re
+    match = re.search(r'(\d+\.?\d*)\s*(?:apg|ast)', notes.lower())
+    if match:
+        return float(match.group(1))
+    return 0.0
+
+
+# PPG-based penalty floor: when a player's notes show high PPG but their
+# BPR share is low (team with deep talent), ensure a minimum penalty that
+# reflects their actual scoring production.
+PPG_PENALTY_FLOOR = {
+    15.0: 0.08,   # 15+ PPG → at least 0.08 penalty
+    18.0: 0.12,   # 18+ PPG → at least 0.12
+    22.0: 0.18,   # 22+ PPG → at least 0.18
+}
 
 
 def _notes_suggest_contributor(notes: str) -> bool:
@@ -791,8 +908,11 @@ def injury_impact_report(profiles: Dict[str, TeamInjuryProfile],
         if total_pen < 0.01:
             continue
 
+        has_collapse = any(ip.collapse_risk for ip in profile.injured_players
+                           if not ip.non_effectant)
         star_flag = " *** STAR CARRIER OUT ***" if profile.has_star_carrier_out else ""
-        lines.append(f"  {profile.team_name}{star_flag}")
+        collapse_flag = " *** COLLAPSE RISK ***" if has_collapse else ""
+        lines.append(f"  {profile.team_name}{star_flag}{collapse_flag}")
         lines.append(f"  Expected AdjEM penalty: -{total_pen * 3.5:.1f}")
 
         for ip in profile.injured_players:
@@ -802,6 +922,8 @@ def injury_impact_report(profiles: Dict[str, TeamInjuryProfile],
             bpr_str = f"BPR: {ip.bpr:.1f}" if ip.bpr > 0 else ""
             share_str = f"Share: {ip.bpr_share:.0%}" if ip.bpr_share > 0 else ""
             carrier = " STAR-CARRIER" if ip.is_star_carrier else ""
+            cat_str = (f"Leads {ip.categories_led} cats (x{ip.multi_cat_amplifier:.2f})"
+                       if ip.categories_led >= 2 else "")
 
             parts = [f"    {ip.player} ({ip.position})", status_str, prob_str]
             if bpr_str:
@@ -810,6 +932,10 @@ def injury_impact_report(profiles: Dict[str, TeamInjuryProfile],
                 parts.append(share_str)
             if carrier:
                 parts.append(carrier)
+            if cat_str:
+                parts.append(cat_str)
+            if ip.collapse_risk:
+                parts.append("COLLAPSE-RISK")
             lines.append("  ".join(parts))
 
             if ip.notes:

@@ -243,11 +243,44 @@ def main():
         except Exception:
             pass
 
+    # Social media verification (diagnostic only — does NOT touch probabilities)
+    social_report_text = ""
+    try:
+        from src.social_validation import (
+            load_social_signals, verify_signals, social_verification_report,
+        )
+        social_signals = load_social_signals()
+        if social_signals:
+            matchup_results = {
+                f"{m.team_a.name} vs {m.team_b.name}": m.win_prob_a_ensemble
+                for m in matchups
+            }
+            teams_dict = {t.name: t for t in teams}
+            verifications = verify_signals(
+                social_signals, matchup_results,
+                injury_profiles=injury_profiles,
+                teams_dict=teams_dict,
+                round_name="R64",
+            )
+            if verifications:
+                social_report_text = social_verification_report(verifications)
+                print(f"\n{social_report_text}")
+    except Exception:
+        pass
+
     # Save results and dashboard
     _save_results(teams, matchups, result_ensemble, injury_profiles)
 
     from src.dashboard import save_dashboard, generate_full_report
     save_dashboard(teams, matchups, result_ensemble, prob_func=ensemble_prob_func)
+
+    # Append social verification to full_report.txt (diagnostic section)
+    if social_report_text:
+        report_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "..", "data", "results", "full_report.txt"
+        )
+        with open(report_path, "a") as f:
+            f.write("\n\n" + social_report_text + "\n")
 
     # ── Step 10: Dual Bracket (Healthy vs Injury-Adjusted) ───────────
     if teams_healthy is not None and DATASET_CONFIG.get("use_dual_brackets", False):

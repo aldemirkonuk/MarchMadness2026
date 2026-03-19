@@ -278,7 +278,12 @@ ENSEMBLE_LAMBDA = 0.55  # calibrated via LOYO Brier sweep (0.30-0.80); 65% 1A, 3
 # NARRATIVE VERIFICATION LAYER (2026-only, not backtested)
 # ─────────────────────────────────────────────────────────────────────────────
 NARRATIVE_CAP = 0.05  # Max probability shift from narrative layer per team
-NARRATIVE_INJURY_OVERLAP_DISCOUNT = 0.50  # Reduce personnel_loss factor by 50% if injury model active
+NARRATIVE_INJURY_OVERLAP_DISCOUNT = 1.00  # Fully eliminate personnel_loss when injury model is active
+# Rationale: the injury model already quantifies the player's absence via
+# BPR share, category dominance, and collapse detection. Letting the narrative
+# layer ALSO penalize for "personnel_loss" double-counts the same event.
+# The narrative layer should focus on what the injury model CAN'T capture:
+# coaching history, tactical matchups, momentum, public bias.
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TOURNAMENT CHAOS: Round-Specific (Phase 7)
