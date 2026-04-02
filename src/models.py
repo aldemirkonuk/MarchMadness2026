@@ -10,6 +10,7 @@ class Team:
     name: str
     seed: int
     region: str
+    conference: str = ""
 
     # Tier 1 core parameters
     adj_em: float = 0.0
@@ -133,6 +134,21 @@ class Team:
     # P&R proxy metrics (from EvanMiya player BPR)
     big_man_offense: float = 0.0
     rim_defense_bpr: float = 0.0
+
+    # Tournament box-score derived (upstream blended)
+    tourney_efg: float = 0.0
+    tourney_orb_pct: float = 0.0
+    tourney_paint_pct: float = 0.0
+    tourney_ast_rate: float = 0.0
+    tourney_tov_pct: float = 0.0
+    tourney_bench_pct: float = 0.0
+    tourney_games: int = 0
+    traj_fg_pct: float = 0.0
+    traj_ast: float = 0.0
+    traj_tov: float = 0.0
+    traj_paint: float = 0.0
+    traj_bench: float = 0.0
+    n_accelerating: int = 0
 
 
 @dataclass

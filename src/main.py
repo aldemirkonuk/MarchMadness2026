@@ -26,7 +26,7 @@ from src.composite import (
 from src.niche import enrich_niche
 from src.cinderella import cinderella_report
 from src.monte_carlo import simulate_tournament, print_results
-from src.weights import CORE_WEIGHTS, MONTE_CARLO_SIMS, ENSEMBLE_LAMBDA, TOURNAMENT_CHAOS, DATASET_CONFIG
+from src.weights import CORE_WEIGHTS, ACTIVE_WEIGHTS, MONTE_CARLO_SIMS, ENSEMBLE_LAMBDA, TOURNAMENT_CHAOS, DATASET_CONFIG
 from src.ensemble import blend_all_matchups, disagreement_report
 
 
@@ -77,6 +77,7 @@ def main():
             from src.injury_model import (
                 load_injuries, quantify_player_impacts,
                 apply_injury_degradation, injury_impact_report,
+                compute_star_isolation,
             )
             injuries = load_injuries()
             if injuries:
@@ -87,6 +88,17 @@ def main():
                     print("  WARNING: EvanMiya_Players.csv not loaded — using notes-based fallback")
 
                 injury_profiles = quantify_player_impacts(injuries, player_df)
+
+                # Star Isolation Index: detect teams where one player IS the offense
+                sii_results = compute_star_isolation(injury_profiles, player_df)
+                if sii_results:
+                    severe = {t: s for t, s in sii_results.items() if s >= 0.12}
+                    mild = {t: s for t, s in sii_results.items() if 0.08 <= s < 0.12}
+                    if severe:
+                        print(f"  STAR ISOLATION (severe): {severe}")
+                    if mild:
+                        print(f"  STAR ISOLATION (mild): {mild}")
+
                 teams = apply_injury_degradation(teams, injury_profiles, round_name="R64")
                 print(f"  {len(injuries)} injuries loaded across {len(injury_profiles)} teams")
                 print(f"  Team parameters degraded for R64 availability")
@@ -154,6 +166,83 @@ def main():
             print("  Post-ensemble star vacuum penalties applied")
         except Exception as e:
             print(f"  WARNING: Star vacuum penalty failed ({e})")
+
+    # ── Step 8c: Load tournament box scores & blend upstream ──────────
+    tourney_profiles = {}
+    try:
+        from src.tournament_loader import load_tournament_box_scores, tournament_profile_report
+        tourney_profiles = load_tournament_box_scores()
+        if tourney_profiles:
+            print(f"  Tournament box scores loaded for {len(tourney_profiles)} teams")
+            for t in teams:
+                tp = tourney_profiles.get(t.name)
+                if tp and tp.n_games >= 1:
+                    t.tourney_efg = tp.efg
+                    t.tourney_orb_pct = tp.orb_pct
+                    t.tourney_paint_pct = tp.paint_pct
+                    t.tourney_ast_rate = tp.ast_rate
+                    t.tourney_tov_pct = tp.tov_pct
+                    t.tourney_bench_pct = tp.bench_pct
+                    t.tourney_games = tp.n_games
+                    t.traj_fg_pct = tp.traj_fg_pct
+                    t.traj_ast = tp.traj_ast
+                    t.traj_tov = tp.traj_tov
+                    t.traj_paint = tp.traj_paint
+                    t.traj_bench = tp.traj_bench
+                    t.n_accelerating = tp.n_accelerating
+            accel_teams = [(t.name, t.n_accelerating) for t in teams if t.n_accelerating >= 2]
+            if accel_teams:
+                print(f"  ACCELERATING teams (2+ improving stats): {accel_teams}")
+    except Exception as e:
+        import traceback
+        print(f"  WARNING: Tournament box-score loader failed ({e})")
+        traceback.print_exc()
+
+    # ── Step 8c2: Load tournament momentum ─────────────────────────────
+    tourney_momentum = {}
+    try:
+        from src.tournament_momentum import load_tournament_momentum, momentum_report
+        tourney_momentum = load_tournament_momentum()
+        if tourney_momentum:
+            hot = [(t, p.total) for t, p in tourney_momentum.items() if p.total >= 0.03]
+            if hot:
+                print(f"  Tournament momentum loaded for {len(tourney_momentum)} teams")
+                print(f"  HOT momentum: {hot}")
+    except Exception as e:
+        import traceback
+        print(f"  WARNING: Tournament momentum loader failed ({e})")
+        traceback.print_exc()
+
+    # ── Step 8d: Scenario Engine — evidence-based 4-category reasoning ──
+    scenario_results = {}
+    if DATASET_CONFIG.get("use_branch_engine", True):
+        try:
+            from src.scenario_engine import ScenarioContext, evaluate_scenario, scenario_report
+
+            # BUG FIX #1: use explicit variable reference instead of 'sii_results' in dir()
+            _sii = sii_results if injury_profiles else {}
+
+            print("  [SCENARIO ENGINE] 4-category evidence analysis per matchup...")
+            for m in matchups:
+                ctx = _build_scenario_context(m, injury_profiles, _sii, tourney_profiles, tourney_momentum)
+                result = evaluate_scenario(ctx)
+                scenario_results[(m.team_a.name, m.team_b.name)] = result
+
+                old_p = m.win_prob_a_ensemble
+                m.win_prob_a_ensemble = result.p_final
+
+                if abs(result.total_shift) > 0.005:
+                    fired_cats = sum(1 for c in result.categories if abs(c.final_shift) > 0.001)
+                    print(f"    {m.team_a.name} vs {m.team_b.name}: "
+                          f"{old_p:.1%} -> {m.win_prob_a_ensemble:.1%} "
+                          f"({result.total_shift:+.1%}) "
+                          f"[{fired_cats} categories, coherence={result.coherence:.0%}]")
+
+            print(f"  Scenario engine applied to {len(matchups)} matchups")
+        except Exception as e:
+            import traceback
+            print(f"  WARNING: Scenario engine failed ({e}). Using ensemble probabilities.")
+            traceback.print_exc()
 
     # Print matchup predictions
     _print_matchup_predictions(matchups)
@@ -243,6 +332,27 @@ def main():
         except Exception:
             pass
 
+    # Scenario engine fired-only report
+    if scenario_results:
+        try:
+            from src.scenario_engine import scenario_report
+            print(f"\n{'='*80}")
+            print("  SCENARIO ENGINE: FIRED-ONLY REPORTS")
+            print(f"{'='*80}")
+            for (a_name, b_name), result in scenario_results.items():
+                if abs(result.total_shift) > 0.005:
+                    print(scenario_report(result))
+        except Exception:
+            pass
+
+    # Tournament box-score profiles
+    if tourney_profiles:
+        try:
+            from src.tournament_loader import tournament_profile_report
+            print(f"\n{tournament_profile_report(tourney_profiles)}")
+        except Exception:
+            pass
+
     # Social media verification (diagnostic only — does NOT touch probabilities)
     social_report_text = ""
     try:
@@ -317,7 +427,7 @@ def _run_healthy_bracket(teams_healthy, h2h_lookup, n_sims, result_injury, injur
 
     def healthy_prob_func(team_a, team_b):
         z = composite_score_differential(
-            team_a.normalized_params, team_b.normalized_params, CORE_WEIGHTS
+            team_a.normalized_params, team_b.normalized_params, ACTIVE_WEIGHTS
         )
         h2h_margin = h2h_lookup.get((team_a.name, team_b.name), 0.0)
         if h2h_margin != 0.0:
@@ -464,7 +574,7 @@ def _build_ensemble_prob_func(xgb_model, h2h_lookup):
         z = composite_score_differential(
             team_a.normalized_params,
             team_b.normalized_params,
-            CORE_WEIGHTS,
+            ACTIVE_WEIGHTS,
         )
 
         # H2H season tiebreaker
@@ -506,6 +616,94 @@ def _build_ensemble_prob_func(xgb_model, h2h_lookup):
         _cache[key] = p_ens
         _cache[(team_b.name, team_a.name)] = 1.0 - p_ens
         return p_ens
+
+    # BUG FIX #2-6: Wrap with scenario engine for MC simulation
+    # - Full context from Team objects (not just subset)
+    # - round_name threaded from MC caller
+    # - Cache keyed by (team_a, team_b, round_name) to prevent staleness
+    if DATASET_CONFIG.get("use_branch_engine", True):
+        _raw_prob_func = prob_func
+        _scenario_cache = {}
+
+        def prob_func_with_scenarios(team_a, team_b, round_name="R64"):
+            key = (team_a.name, team_b.name, round_name)
+            if key in _scenario_cache:
+                return _scenario_cache[key]
+
+            p_base = _raw_prob_func(team_a, team_b)
+
+            try:
+                from src.scenario_engine import ScenarioContext, evaluate_scenario
+                ctx = ScenarioContext(
+                    team_a_name=team_a.name,
+                    team_b_name=team_b.name,
+                    p_base=p_base,
+                    round_name=round_name,
+                    seed_a=team_a.seed,
+                    seed_b=team_b.seed,
+                    bench_depth_a=team_a.bds,
+                    bench_depth_b=team_b.bds,
+                    orb_pct_a=team_a.orb_pct,
+                    orb_pct_b=team_b.orb_pct,
+                    drb_pct_a=team_a.drb_pct,
+                    drb_pct_b=team_b.drb_pct,
+                    rbm_a=team_a.rbm,
+                    rbm_b=team_b.rbm,
+                    conference_a=team_a.conference,
+                    conference_b=team_b.conference,
+                    three_pt_share_a=team_a.three_pa_fga,
+                    three_pt_share_b=team_b.three_pa_fga,
+                    three_pt_pct_a=team_a.three_p_pct,
+                    three_pt_pct_b=team_b.three_p_pct,
+                    three_pt_std_a=team_a.three_pt_std,
+                    three_pt_std_b=team_b.three_pt_std,
+                    pace_a=team_a.pace,
+                    pace_b=team_b.pace,
+                    tourney_orb_pct_a=team_a.tourney_orb_pct,
+                    tourney_orb_pct_b=team_b.tourney_orb_pct,
+                    tourney_paint_pct_a=team_a.tourney_paint_pct,
+                    tourney_paint_pct_b=team_b.tourney_paint_pct,
+                    tourney_ast_rate_a=team_a.tourney_ast_rate,
+                    tourney_ast_rate_b=team_b.tourney_ast_rate,
+                    tourney_games_a=team_a.tourney_games,
+                    tourney_games_b=team_b.tourney_games,
+                    form_trend_a=team_a.form_trend,
+                    form_trend_b=team_b.form_trend,
+                    momentum_a=team_a.momentum,
+                    momentum_b=team_b.momentum,
+                    offensive_burst_a=team_a.offensive_burst,
+                    offensive_burst_b=team_b.offensive_burst,
+                    q3_adj_a=team_a.q3_adj_strength,
+                    q3_adj_b=team_b.q3_adj_strength,
+                    trajectory_fg_pct_a=team_a.traj_fg_pct,
+                    trajectory_fg_pct_b=team_b.traj_fg_pct,
+                    trajectory_ast_a=team_a.traj_ast,
+                    trajectory_ast_b=team_b.traj_ast,
+                    trajectory_tov_a=team_a.traj_tov,
+                    trajectory_tov_b=team_b.traj_tov,
+                    trajectory_paint_a=team_a.traj_paint,
+                    trajectory_paint_b=team_b.traj_paint,
+                    trajectory_bench_a=team_a.traj_bench,
+                    trajectory_bench_b=team_b.traj_bench,
+                    team_exp_a=team_a.exp,
+                    team_exp_b=team_b.exp,
+                    star_ppg_a=team_a.best_player_above_avg_pts + 12.0 if team_a.best_player_above_avg_pts > 0 else 0.0,
+                    star_ppg_b=team_b.best_player_above_avg_pts + 12.0 if team_b.best_player_above_avg_pts > 0 else 0.0,
+                    first_tourney_a=team_a.exp < 1.5,
+                    first_tourney_b=team_b.exp < 1.5,
+                    foul_trouble_rate_a=team_a.foul_trouble_impact,
+                    foul_trouble_rate_b=team_b.foul_trouble_impact,
+                )
+                result = evaluate_scenario(ctx)
+                p_final = result.p_final
+            except Exception:
+                p_final = p_base
+
+            _scenario_cache[key] = p_final
+            _scenario_cache[(team_b.name, team_a.name, round_name)] = 1.0 - p_final
+            return p_final
+
+        return prob_func_with_scenarios
 
     return prob_func
 
@@ -554,6 +752,133 @@ def _print_matchup_predictions(matchups):
                 for c in m.cons_b[:1]:
                     print(f"          - {c}")
         print()
+
+
+_RECENT_FINAL_FOURS = {
+    "Connecticut": 2,   # 2023 champion, 2024 champion
+    "Alabama": 1,       # 2024 Final Four
+    "Purdue": 1,        # 2024 championship game
+    "Houston": 1,       # 2024 Sweet 16, 2023 Final Four
+    "Duke": 1,          # 2022 Final Four
+    "Michigan State": 1, # deep tournament runs, Izzo DNA
+    "Florida": 1,       # 2023 R32 exit but 2024 run
+}
+
+
+def _build_scenario_context(matchup, injury_profiles, sii_results, tourney_profiles=None, tourney_momentum=None):
+    """Build ScenarioContext from a Matchup + all available data sources."""
+    from src.scenario_engine import ScenarioContext
+    a = matchup.team_a
+    b = matchup.team_b
+
+    prof_a = injury_profiles.get(a.name)
+    prof_b = injury_profiles.get(b.name)
+
+    star_lost_a = prof_a.has_star_carrier_out if prof_a else False
+    star_lost_b = prof_b.has_star_carrier_out if prof_b else False
+    star_bpr_a = prof_a.top_player_bpr_share if prof_a and hasattr(prof_a, 'top_player_bpr_share') else 0.0
+    star_bpr_b = prof_b.top_player_bpr_share if prof_b and hasattr(prof_b, 'top_player_bpr_share') else 0.0
+    sii_a = sii_results.get(a.name, 0.0) if sii_results else 0.0
+    sii_b = sii_results.get(b.name, 0.0) if sii_results else 0.0
+
+    inj_pen_a = getattr(prof_a, 'total_adj_em_penalty', 0.0) if prof_a else 0.0
+    inj_pen_b = getattr(prof_b, 'total_adj_em_penalty', 0.0) if prof_b else 0.0
+
+    tp_a = tourney_profiles.get(a.name) if tourney_profiles else None
+    tp_b = tourney_profiles.get(b.name) if tourney_profiles else None
+
+    ctx = ScenarioContext(
+        team_a_name=a.name,
+        team_b_name=b.name,
+        p_base=matchup.win_prob_a_ensemble,
+        round_name=matchup.round_name,
+        seed_a=a.seed,
+        seed_b=b.seed,
+
+        # ROSTER STATE
+        injury_penalty_a=abs(inj_pen_a),
+        injury_penalty_b=abs(inj_pen_b),
+        star_lost_a=star_lost_a,
+        star_lost_b=star_lost_b,
+        star_bpr_share_a=star_bpr_a,
+        star_bpr_share_b=star_bpr_b,
+        sii_a=sii_a,
+        sii_b=sii_b,
+        crippled_roster_a=getattr(prof_a, 'has_crippled_roster', False) if prof_a else False,
+        crippled_roster_b=getattr(prof_b, 'has_crippled_roster', False) if prof_b else False,
+        crippled_weeks_out_a=getattr(prof_a, 'crippled_weeks_out', 0.0) if prof_a else 0.0,
+        crippled_weeks_out_b=getattr(prof_b, 'crippled_weeks_out', 0.0) if prof_b else 0.0,
+        bench_depth_a=a.bds,
+        bench_depth_b=b.bds,
+        foul_trouble_rate_a=a.foul_trouble_impact,
+        foul_trouble_rate_b=b.foul_trouble_impact,
+
+        # MATCHUP STYLE
+        orb_pct_a=a.orb_pct,
+        orb_pct_b=b.orb_pct,
+        drb_pct_a=a.drb_pct,
+        drb_pct_b=b.drb_pct,
+        rbm_a=a.rbm,
+        rbm_b=b.rbm,
+        conference_a=a.conference,
+        conference_b=b.conference,
+        three_pt_share_a=a.three_pa_fga,
+        three_pt_share_b=b.three_pa_fga,
+        three_pt_pct_a=a.three_p_pct,
+        three_pt_pct_b=b.three_p_pct,
+        three_pt_std_a=a.three_pt_std,
+        three_pt_std_b=b.three_pt_std,
+        pace_a=a.pace,
+        pace_b=b.pace,
+        tourney_orb_pct_a=a.tourney_orb_pct,
+        tourney_orb_pct_b=b.tourney_orb_pct,
+        tourney_paint_pct_a=a.tourney_paint_pct,
+        tourney_paint_pct_b=b.tourney_paint_pct,
+        tourney_ast_rate_a=a.tourney_ast_rate,
+        tourney_ast_rate_b=b.tourney_ast_rate,
+        tourney_games_a=a.tourney_games,
+        tourney_games_b=b.tourney_games,
+
+        # FORM & TRAJECTORY
+        form_trend_a=a.form_trend,
+        form_trend_b=b.form_trend,
+        momentum_a=a.momentum,
+        momentum_b=b.momentum,
+        tourney_momentum_a=tourney_momentum.get(a.name).total if tourney_momentum and tourney_momentum.get(a.name) else 0.0,
+        tourney_momentum_b=tourney_momentum.get(b.name).total if tourney_momentum and tourney_momentum.get(b.name) else 0.0,
+        offensive_burst_a=a.offensive_burst,
+        offensive_burst_b=b.offensive_burst,
+        q3_adj_a=a.q3_adj_strength,
+        q3_adj_b=b.q3_adj_strength,
+        trajectory_fg_pct_a=a.traj_fg_pct,
+        trajectory_fg_pct_b=b.traj_fg_pct,
+        trajectory_ast_a=a.traj_ast,
+        trajectory_ast_b=b.traj_ast,
+        trajectory_tov_a=a.traj_tov,
+        trajectory_tov_b=b.traj_tov,
+        trajectory_paint_a=a.traj_paint,
+        trajectory_paint_b=b.traj_paint,
+        trajectory_bench_a=a.traj_bench,
+        trajectory_bench_b=b.traj_bench,
+        tourney_efg_a=a.tourney_efg,
+        tourney_efg_b=b.tourney_efg,
+
+        # INTANGIBLES
+        team_exp_a=a.exp,
+        team_exp_b=b.exp,
+        star_ppg_a=a.best_player_above_avg_pts + 12.0 if a.best_player_above_avg_pts > 0 else 0.0,
+        star_ppg_b=b.best_player_above_avg_pts + 12.0 if b.best_player_above_avg_pts > 0 else 0.0,
+        first_tourney_a=a.exp < 1.5,
+        first_tourney_b=b.exp < 1.5,
+        recent_final_fours_a=_RECENT_FINAL_FOURS.get(a.name, 0),
+        recent_final_fours_b=_RECENT_FINAL_FOURS.get(b.name, 0),
+        sos_rank_a=getattr(a, 'sos_rank', 50),
+        sos_rank_b=getattr(b, 'sos_rank', 50),
+        q1_wins_a=int(getattr(a, 'q1_record', 0.5) * 10),
+        q1_wins_b=int(getattr(b, 'q1_record', 0.5) * 10),
+    )
+
+    return ctx
 
 
 def _print_bracket_picks(matchups, result):

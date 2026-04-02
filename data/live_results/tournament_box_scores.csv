@@ -1,0 +1,62 @@
+round,date,region,seed_a,team_a,score_a,seed_b,team_b,score_b,winner,upset,h1_score_a,h1_score_b,h2_score_a,h2_score_b,fg_pct_a,fg_pct_b,three_pt_made_a,three_pt_att_a,three_pt_pct_a,three_pt_made_b,three_pt_att_b,three_pt_pct_b,ft_made_a,ft_att_a,ft_pct_a,ft_made_b,ft_att_b,ft_pct_b,oreb_a,oreb_b,dreb_a,dreb_b,tot_reb_a,tot_reb_b,ast_a,ast_b,stl_a,stl_b,blk_a,blk_b,tov_a,tov_b,pf_a,pf_b,largest_lead_a,largest_lead_b,pts_off_tov_a,pts_off_tov_b,second_chance_pts_a,second_chance_pts_b,pts_in_paint_a,pts_in_paint_b,fast_break_pts_a,fast_break_pts_b,bench_pts_a,bench_pts_b,notes
+FF,2026-03-17,West,11,Texas,68,11,NC State,66,Texas,No,30,29,,,36.8,39.0,5,17,29.4,6,16,37.5,21,29,72.4,14,18,77.8,15,7,30,26,45,33,9,10,7,8,6,2,12,7,16,21,,,,,13,9,28,32,8,6,15,4,First Four. Gritty defensive battle. Texas won on rebounding (45-33) and 2nd chance pts. Free throw disparity critical
+R64,2026-03-19,East,1,Duke,71,16,Siena,65,Duke,No,32,43,39,22,40.7,,5,26,19.2,,,,,,,,,,16,,27,,43,,14,,,,,,8,,,,,,,Duke trailed 32-43 at half. Siena no subs almost entire game. Duke rallied when Siena went scoreless 7 min stretch. Foster OUT + Ngongba OUT = 7-man rotation,,,36,,,,,,
+R64,2026-03-19,East,8,Ohio State,64,9,TCU,66,TCU,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,David Punch 16pts 13reb. Micah Robinson 18pts. Edmonds 16pts game-winner 4.3sec. TCU rebounding + physicality dominated,,,,,,,,,,,
+R64,2026-03-19,East,6,Louisville,83,11,South Florida,79,Louisville,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,McKneely 23pts 7 threes. Conwell 18pts(11 in 2H). Fru 10pts 10reb. Pinion(USF) 27pts. Scoring drought period = Brown absence effect,,,,,,,,,,,
+R64,2026-03-19,East,3,Michigan State,92,14,North Dakota State,67,Michigan State,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Cooper 20pts 10reb. Blowout,,,,,,,,,,,
+R64,2026-03-19,South,5,Vanderbilt,78,12,McNeese State,68,Vanderbilt,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Trailed by ~15 at one point. Guard hero performance saved them,,,,,,,,,,,
+R64,2026-03-19,South,4,Nebraska,76,13,Troy,47,Nebraska,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Sandfort 23pts 7 threes. Frager 13pts. Lawrence 13pts. Mast 11/7/6. 4 double-digit scorers. OREB dominance. Pace control,,,,,,,,,,,
+R64,2026-03-19,South,6,North Carolina,78,11,VCU,82,VCU,YES,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Hill Jr(VCU) 34pts 7/10 from 3 20pts in 2H. Lewis(VCU) 16pts clutch FTs. Veesaar(UNC) 26/10 missed 2 FTs in OT. Trimble(UNC) 15/8/6 selfish. UNC led by 19 in 2H = choked. 19pt comeback = largest R64 history,,,,,,,,,,,
+R64,2026-03-19,South,3,Illinois,105,14,Penn,70,Illinois,No,,,,,50.0,,10,24,41.7,,,,,,,,,,20,,28,,48,,18,,,,,,3,,,,,Boswell lockdown defender neutralized Penn best player,,,,,44,,,,,,
+R64,2026-03-19,South,7,Saint Mary's,50,10,Texas A&M,63,Texas A&M,YES,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,A&M 6 players avg 10+ ppg overwhelmed SMC. Gad(SMC) OUT shoulder season-ending,,,,,,,,,,,
+R64,2026-03-19,South,2,Houston,78,15,Idaho,47,Houston,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Chalk,,,,,,,,,,,
+R64,2026-03-19,West,5,Wisconsin,82,12,High Point,83,High Point,YES,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Johnston(HP) 14pts 4/6 from 3. 415 career threes 45.2%. First 2PT of season = game-winning fast-break layup 11.7sec. Boyd(WIS) 27pts. Blackwell(WIS) 22pts,,,,,,,,,,,
+R64,2026-03-19,West,4,Arkansas,97,13,Hawaii,78,Arkansas,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Acuff dual-threat PG scorer+facilitator,,,,,,,,,,,
+R64,2026-03-19,West,6,BYU,71,11,Texas,79,Texas,YES,37,46,,,42.9,47.0,4,22,18.2,8,22,36.4,19,24,79.2,9,18,50.0,8,16,23,24,31,40,6,14,6,8,4,7,7,8,19,19,,,,,10,16,36,38,11,2,0,7,Dybantsa(BYU) 35pts 10reb 11/25FG 12/12FT ALL 40min. Saunders(BYU) OUT torn ACL. BYU offense = 100% Dybantsa+Wright PnR. Texas physical advantage on glass
+R64,2026-03-19,West,3,Gonzaga,73,14,Kennesaw State,64,Gonzaga,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,Ike 19pts 8reb. Warley 12pts 12reb. 1/9 from 3PT first half. Led only 33-27 at half. KSU cut to 67-62 with 2min left,,,,,,,,,,,
+R64,2026-03-19,Midwest,1,Michigan,101,16,Howard,80,Michigan,No,,,,,67.3,,11,23,47.8,,,,,,,,,,4,,38,,42,,26,,,,,,10,,,,,,,,,,52,,,,,,
+R64,2026-03-19,Midwest,8,Georgia,77,9,Saint Louis,102,Saint Louis,YES,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,SLU offensive clinic. Dominated P5 team by 25,,,,,,,,,,,
+R64,2026-03-20,East,5,St. John's,79,12,Northern Iowa,53,St. John's,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,East,4,Kansas,68,13,Cal Baptist,60,Kansas,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,East,7,UCLA,75,10,UCF,71,UCLA,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,East,2,Connecticut,82,15,Furman,71,Connecticut,No,,,,,49.2,,5,25,20.0,,,,,,,,,,18,,26,,44,,15,,,,,,9,,,,,,,,,,46,,,,,,
+R64,2026-03-20,West,1,Arizona,92,16,LIU Brooklyn,58,Arizona,No,,,,,53.3,,6,13,46.2,,,,,,,,,,16,,36,,52,,16,,,,,,10,,,,,,,,,,50,,,,,,
+R64,2026-03-20,West,9,Utah State,86,8,Villanova,76,Utah State,YES,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,West,7,Miami FL,80,10,Missouri,66,Miami FL,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,West,2,Purdue,104,15,Queens,71,Purdue,No,,,,,63.1,,9,22,41.0,,,,,,,,,,13,,35,,48,,26,,,,,,12,,,,,,,,,,48,,,,,,
+R64,2026-03-20,South,1,Florida,114,16,Prairie View A&M,55,Florida,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,South,9,Iowa,67,8,Clemson,61,Iowa,No,,,,,38.3,,7,25,28.0,,,,,,,,,,11,,29,,40,,12,,,,,,8,,,,,,,,,,18,,,,,,
+R64,2026-03-20,Midwest,5,Texas Tech,91,12,Akron,71,Texas Tech,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,Midwest,4,Alabama,87,13,Hofstra,69,Alabama,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,Midwest,6,Tennessee,78,11,Miami OH,56,Tennessee,No,,,,,52.5,,9,20,45.0,,,,,,,,,,10,,32,,42,,18,,,,,,16,,,,,,,,,,40,,,,,,
+R64,2026-03-20,Midwest,3,Virginia,82,14,Wright State,73,Virginia,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,Midwest,7,Kentucky,89,10,Santa Clara,84,Kentucky,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R64,2026-03-20,Midwest,2,Iowa State,108,15,Tennessee State,74,Iowa State,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R32,2026-03-21,East,1,Duke,81,9,TCU,58,Duke,No,,,,,55.1,,7,21,33.3,,,,,,,,,,9,,33,,42,,17,,,,,,17,,,,,,,,,,36,,,,,,
+R32,2026-03-21,East,6,Louisville,69,3,Michigan State,77,Michigan State,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R32,2026-03-21,South,5,Vanderbilt,72,4,Nebraska,74,Nebraska,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R32,2026-03-21,South,11,VCU,55,3,Illinois,76,Illinois,No,,,,,,48.3,,,,7,26,26.9,,,,,,,,16,,29,,45,,12,,,,,,11,,,,,,,,,,36,,,,,
+R32,2026-03-21,South,10,Texas A&M,57,2,Houston,88,Houston,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R32,2026-03-21,West,12,High Point,88,4,Arkansas,94,Arkansas,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R32,2026-03-21,West,11,Texas,74,3,Gonzaga,68,Texas,YES,35,33,,,51.7,45.0,5,15,33.3,4,16,25.0,7,9,77.8,10,12,83.3,5,6,24,28,29,34,20,21,4,5,3,0,5,7,11,9,,,,,7,9,46,38,10,6,20,13,11-seed Texas upsets 3-seed Gonzaga. Gonzaga 3PT shooting unreliable (1/9 first half R64). Big 12 physicality + rebounding advantage. Huff(Gonzaga) OUT knee dislocation 17.8ppg
+R32,2026-03-21,Midwest,1,Michigan,95,9,Saint Louis,72,Michigan,No,,,,,55.7,,11,23,47.8,,,,,,,,,,14,,28,,42,,17,,,,,,8,,,,,,,,,,42,,,,,,
+R32,2026-03-22,West,2,Purdue,79,7,Miami FL,69,Purdue,No,,,,,44.4,,5,19,26.3,,,,,,,,,,13,,30,,43,,15,,,,,,13,,,,,,,,,,34,,,,,,
+R32,2026-03-22,Midwest,2,Iowa State,82,7,Kentucky,63,Iowa State,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R32,2026-03-22,East,5,St. John's,67,4,Kansas,65,St. John's,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R32,2026-03-22,Midwest,6,Tennessee,79,3,Virginia,72,Tennessee,No,,,,,47.3,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+R32,2026-03-22,South,9,Iowa,73,1,Florida,72,Iowa,YES,,,,,51.0,,7,24,29.2,,,,,,,,,,8,,16,,24,,13,,,,,,9,,,,,,,,,,32,,,,,,
+R32,2026-03-22,West,1,Arizona,78,9,Utah State,66,Arizona,No,,,,,39.3,,7,17,41.2,,,,,,,,,,22,,32,,54,,8,,,,,,11,,,,,,,,,,34,,,,,,
+R32,2026-03-22,East,7,UCLA,73,2,Connecticut,57,Connecticut,No,,,,,,46.9,,,,8,24,33.3,,,,,,,,8,,28,,36,,14,,,,,,16,,,,,,,,,,30,,,,,
+R32,2026-03-22,Midwest,4,Alabama,90,5,Texas Tech,65,Alabama,No,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+S16,2026-03-26,West,2,Purdue,79,11,Texas,77,Purdue,No,39,35,40,42,48.4,51.8,4,20,20.0,11,25,44.0,15,20,75.0,8,15,53.3,12,12,20,19,32,31,11,14,3,2,2,2,4,7,15,19,,,,,22,12,38,30,4,6,4,9,SAP Center San Jose. Verified box score user 2026-03-26. Second-chance 22-12 Purdue.
+S16,2026-03-26,West,1,Arizona,109,4,Arkansas,88,Arizona,No,54,43,55,45,63.8,47.7,5,8,62.5,5,23,21.7,30,39,76.9,21,26,80.8,6,9,24,19,30,28,19,13,3,9,3,5,12,9,16,25,,,,,8,9,60,50,13,12,22,15,User box score. Arizona 63.8 FG%.
+S16,2026-03-26,South,3,Illinois,65,2,Houston,55,Illinois,Yes,24,22,41,33,43.1,34.4,9,23,39.1,9,32,28.1,12,21,57.1,2,2,100.0,12,11,31,23,43,34,13,17,2,4,3,2,9,5,,,,,,,12,10,24,18,2,0,18,9,User box score. Houston 2 FTA.
+S16,2026-03-26,South,4,Nebraska,71,9,Iowa,77,Iowa,Yes,46,43,25,34,41.4,51.9,13,38,34.2,13,30,43.3,10,11,90.9,10,12,83.3,12,3,23,23,35,26,19,15,4,6,,,10,10,,,,,,,11,5,20,22,,,,,User box score.
+S16,2026-03-27,East,1,Duke,80,5,St. John's,75,Duke,No,39,40,41,35,53.6,45.3,5,14,35.7,13,32,40.6,15,24,62.5,4,8,50.0,12,10,28,17,40,27,13,19,4,7,5,3,9,6,,,,,,,15,6,40,28,13,13,,,User box score.
+S16,2026-03-27,Midwest,1,Michigan,90,4,Alabama,77,Michigan,No,47,49,43,28,50.0,36.2,13,27,48.1,14,47,29.8,11,20,55.0,13,14,92.9,13,11,33,21,46,32,22,14,4,5,8,1,8,7,,,,,,,,,,,,,33,6,User box score.
+S16,2026-03-27,East,2,Connecticut,67,3,Michigan State,63,Connecticut,No,38,30,29,33,46.2,39.7,9,21,42.9,5,20,25.0,10,18,55.6,12,16,75.0,8,13,22,26,30,39,16,14,5,4,6,5,11,10,,,,,,,,,30,34,,,8,12,User box score STL/BLK per user table.
+S16,2026-03-27,Midwest,2,Iowa State,62,6,Tennessee,76,Tennessee,Yes,33,34,29,42,38.2,46.7,,,,,,,15,25,60.0,14,19,73.7,8,16,24,24,32,40,11,17,,,,,10,11,,,,,,,7,14,30,42,,,,,User box score (3PT/STL/BLK omitted in source).
+E8,2026-03-28,West,1,Arizona,79,2,Purdue,64,Arizona,No,31,38,48,26,47.0,38.0,5,15,33.3,8,22,36.4,20,22,90.9,8,13,61.5,10,14,27,22,37,36,15,14,5,4,1,4,6,11,14,16,,,,,,,,,,,,,"E8 West. Arizona trailed 31-38 at half, stormed back with 48-26 H2. Peat 20pts 7reb. Kharchenkov 18pts. ESPN box score."
+E8,2026-03-28,South,3,Illinois,71,9,Iowa,59,Illinois,No,28,32,43,27,47.2,38.3,3,17,17.6,11,30,36.7,18,21,85.7,12,14,85.7,16,8,22,13,38,21,8,12,6,5,5,3,8,9,13,20,,,,,,,40,12,,,,,E8 South. Illinois trailed 28-32 at half then erupted 43-27 H2. Wagler 25pts MOP. Paint 40-12 Illinois. Reb 38-21. ESPN box score.
+E8,2026-03-29,East,1,Duke,72,2,Connecticut,73,Connecticut,No,44,29,28,44,52.1,43.8,6,15,40.0,5,23,21.7,16,22,72.7,12,17,70.6,10,13,24,15,34,28,17,16,4,7,6,8,13,5,16,17,,,,,,,,,,,,,E8 East. Duke led 44-29 at half (19pt lead). Mullins 35-ft buzzer-beater 3PT with 0.4s won it. Duke 13 TOV. UConn 42.3% ORB rate. Reed Jr 26pts 9reb 4blk. Cameron Boozer 27pts. Foster 0pts 3TOV in 14min. RealGM box score.
+E8,2026-03-29,Midwest,1,Michigan,95,6,Tennessee,62,Michigan,No,48,26,47,36,51.8,31.6,10,27,37.0,5,26,19.2,27,37,73.0,9,17,52.9,8,19,34,23,42,42,19,12,6,8,8,2,11,9,18,24,,,,,,,,,,,,,E8 Midwest. Michigan 21-0 run blew game open. Lendeborg 27pts 7reb. Cadeau 8pts 10ast. Tennessee shot 31.6% FG. 5 Michigan players in double figures. ESPN box score.

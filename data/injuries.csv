@@ -8,14 +8,15 @@ BYU,R. Saunders,G,OUT,Torn ACL,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending 
 Clemson,C. Welling,F,QUESTIONABLE,Knee,R64,0.35,0.40,0.50,0.55,0.60,0.65,Torn ACL reported but listed questionable
 Clemson,T. Steinour,F,QUESTIONABLE,Undisclosed,R64,0.40,0.45,0.50,0.55,0.60,0.65,Out since mid-Feb
 Clemson,Z. Foster,G,OUT,Knee,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Dec
-Duke,C. Foster,G,OUT,Foot Fracture,E8,0.00,0.05,0.20,0.40,0.60,0.70,Surgery after UNC game Mar 7 - elite perimeter defender - 8.5 PPG 3.6 REB 2.8 AST
+Duke,C. Foster,G,EXPECTED,Foot Fracture,E8,0.00,0.05,0.20,0.85,0.90,0.92,Surgery after UNC game Mar 7 - returned S16 vs St. Johns (18 min 11 pts) - elite perimeter defender - 8.5 PPG 3.6 REB 2.8 AST
 Duke,P. Ngongba II,C,QUESTIONABLE,Foot Soreness,R64,0.55,0.65,0.75,0.80,0.85,0.90,Could play opener vs Siena
 Duke,I. Ufochukwu,C,OUT,Undisclosed,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Out since late Dec
-Gonzaga,B. Huff,F,OUT,Knee Dislocation,S16,0.00,0.10,0.40,0.70,0.85,0.90,Kneecap dislocation Jan - 4-8 week timeline - possible second weekend return
+Gonzaga,B. Huff,F,OUT,Knee Dislocation,S16,0.00,0.10,0.40,0.70,0.85,0.90,Kneecap dislocation Jan - 4-8 week timeline - possible second weekend return - 17.8 PPG before injury - team top scorer and offensive anchor
 Illinois,T. Rodgers,G,QUESTIONABLE,Knee,R64,0.40,0.45,0.50,0.55,0.60,0.65,Listed since Oct
 Iowa,P. McCollum,G,OUT,Foot,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Jan
 Iowa State,X. Mitchell,F,QUESTIONABLE,Undisclosed,R64,0.40,0.45,0.50,0.55,0.60,0.65,Out since early Jan
 Iowa State,M. Williams,G,OUT,Hip,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending since Jun
+Iowa State,J. Jefferson,F,OUT,Undisclosed,NONE,0.00,0.00,0.00,0.00,0.00,0.00,All-America F; hurt in 2026 NCAA tournament opener; did not play S16 vs Tennessee; ~16.4 PPG 7.4 REB 4.8 AST pre-injury (roster impact)
 Kansas,J. Cross,F,QUESTIONABLE,Undisclosed,R64,0.40,0.50,0.60,0.65,0.70,0.75,Recent - Mar 12
 Kansas,C. Allen,G,QUESTIONABLE,Undisclosed,R64,0.40,0.50,0.60,0.65,0.70,0.75,Recent - Mar 12
 Kansas,W. Thengvall,G,QUESTIONABLE,Undisclosed,R64,0.40,0.50,0.60,0.65,0.70,0.75,Recent - Mar 11
@@ -61,7 +62,7 @@ UCF,K. Jefferson,G,OUT,Knee,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending sin
 UCF,J. Jakstys,C,OUT,Undisclosed,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Since Feb
 UCLA,D. Dent,G,EXPECTED,Calf,R64,0.85,0.88,0.90,0.92,0.95,0.95,Visibly limited in Big Ten tourney - expected to play
 UCLA,T. Bilodeau,F,EXPECTED,Knee Strain,R64,0.85,0.88,0.90,0.92,0.95,0.95,Non-contact strain Mar 13 - expected to play
-UConn,S. Demary Jr.,G,QUESTIONABLE,Ankle Sprain,R64,0.45,0.55,0.65,0.75,0.80,0.85,Mild ankle sprain
+UConn,S. Demary Jr.,G,QUESTIONABLE,Ankle Sprain,R64,0.45,0.55,0.65,0.75,0.80,0.85,Grade 2 high ankle sprain from Big East championship. Played S16 (2pts) and E8 (11pts 5reb). Boot at pressers. Limited but available. 10.4 PPG 4.5 REB 5.9 AST pre-injury
 UConn,J. Stewart,F,EXPECTED,Knee Soreness,R64,0.85,0.88,0.90,0.92,0.95,0.95,Expected to play
 Villanova,M. Hodge,F,OUT,Torn ACL,NONE,0.00,0.00,0.00,0.00,0.00,0.00,Season-ending
 Wisconsin,N. Winter,F,QUESTIONABLE,Ankle Sprain,R64,0.45,0.55,0.65,0.70,0.75,0.80,Sprained ankle

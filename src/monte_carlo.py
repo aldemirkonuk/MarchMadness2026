@@ -40,7 +40,10 @@ def _get_win_prob(team_a: Team, team_b: Team,
     Phase 7: Applies round-specific chaos floor instead of flat TOURNAMENT_CHAOS.
     """
     if prob_func is not None:
-        p = prob_func(team_a, team_b)
+        try:
+            p = prob_func(team_a, team_b, round_name)
+        except TypeError:
+            p = prob_func(team_a, team_b)
     else:
         from src.equations import composite_score_differential
         z = composite_score_differential(

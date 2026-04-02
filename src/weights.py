@@ -351,6 +351,122 @@ DATASET_CONFIG = {
     "use_round_chaos": True,        # Round-specific chaos (Phase 7)
     "use_dual_brackets": True,      # Produce healthy + injury-adjusted brackets (Phase 9)
     "use_narrative_layer": True,     # Narrative verification layer (2026-only, not backtested)
+    "use_branch_engine": True,       # Branch Engine: 14 conditional probability modifiers (Tree Model)
 }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TOURNAMENT MODE WEIGHTS (Model B — activated once tournament starts)
+# ─────────────────────────────────────────────────────────────────────────────
+# This is a SEPARATE model that coexists with CORE_WEIGHTS (Model A).
+# CORE_WEIGHTS = the backtested pre-tournament model (73.7% accuracy).
+# TOURNAMENT_WEIGHTS = Day-1-informed model that drops resume metrics and
+#   boosts skill-based factors validated by actual game outcomes.
+#
+# Rationale: Once the tournament begins, season-based static ratings (SOS,
+# seed, NET, Q1 record, Q34 loss rate, top25 performance) lose predictive
+# value — everyone is on the same stage now. Those weights (~0.097 total)
+# are redistributed to SKILL-BASED metrics that Day 1 proved matter most:
+#   - Rebounding (every upset had a rebounding story)
+#   - Offensive rebounds specifically (2nd-chance points swing games)
+#   - Second-half adjustment (the 3rd quarter = 10 min of 2H is the killer)
+#   - Experience (UNC young team collapsed; VCU veterans stayed composed)
+#   - Bench depth (Siena had zero subs; Duke ran 7-man rotation)
+#   - Clutch factor (close-game composure separated winners from losers)
+#   - Form trend (BYU 2-4 after Saunders injury; recent form predicts March)
+#   - Ball movement / assists (team ball > hero ball, Nebraska proved this)
+#   - Star dependency (star-isolated teams died in March: BYU, UNC)
+
+def _build_tournament_weights():
+    """Build tournament weights from CORE_WEIGHTS without mutating the original."""
+    tw = dict(CORE_WEIGHTS)
+
+    # Static ratings to ZERO (resume metrics, not skill metrics):
+    _zeroed = {
+        "seed_score",       # 0.001 — seeding is done, everyone's equal
+        "sos",              # 0.003 — season SOS is meaningless in bracket
+        "net_score",        # 0.007 — NET is a seeding tool, not a predictor
+        "q1_record",        # 0.007 — season resume is finished
+        "q34_loss_rate",    # 0.004 — bad losses irrelevant once tourney starts
+        "top25_perf",       # 0.075 — season performance vs top 25, already baked in
+    }
+
+    freed = 0.0
+    for p in _zeroed:
+        freed += tw[p]
+        tw[p] = 0.001  # keep floor so param still exists in vector
+    actual_freed = freed - 0.001 * len(_zeroed)
+
+    # Redistribute to Day-1-validated skill metrics
+    boosts = {
+        # ── REBOUNDING (every upset had a rebounding story) ──────────────
+        "rbm":              0.017,   # rebound margin stays top-tier
+        "orb_pct":          0.011,   # OFFENSIVE rebounds = 2nd-chance pts = game-changers
+        "drb_pct":          0.004,   # defensive boards end possessions
+
+        # ── SECOND-HALF ADJUSTMENT (the "3rd quarter" killer) ────────────
+        "q3_adj_strength":  0.014,   # halftime adjustments decide games
+        # UNC led by 19 → lost. McNeese led by 15 → lost. Siena led by 11 → lost.
+
+        # ── EXPERIENCE + DEPTH ───────────────────────────────────────────
+        "exp":              0.010,   # experience gap decided UNC, Duke
+        "bds":              0.007,   # bench depth: Siena 0 subs, Duke 7-man
+
+        # ── CLUTCH + BALL MOVEMENT ───────────────────────────────────────
+        "clutch_factor":    0.007,   # close-game composure
+        "ast_pct":          0.005,   # team ball > hero ball (Nebraska proof)
+
+        # ── FORM TREND ───────────────────────────────────────────────────
+        "form_trend":       0.005,   # BYU 2-4 after Saunders injury
+
+        # ── STAR DEPENDENCY (biggest Day 1 lesson: BYU, UNC) ─────────────
+        "foul_trouble_impact": 0.008, # star-dependent teams are VERY vulnerable
+    }
+
+    for param, boost in boosts.items():
+        tw[param] += boost
+
+    # Balance check — any leftover goes to rbm (rebound margin)
+    boost_total = sum(boosts.values())
+    leftover = actual_freed - boost_total
+    if abs(leftover) > 1e-6:
+        tw["rbm"] += leftover
+
+    # Fix rounding drift
+    tw_sum = sum(tw.values())
+    if abs(tw_sum - 1.0) > 1e-6:
+        largest = max(tw, key=tw.get)
+        tw[largest] += (1.0 - tw_sum)
+
+    assert abs(sum(tw.values()) - 1.0) < 1e-4, \
+        f"Tournament weights must sum to 1.0, got {sum(tw.values()):.6f}"
+
+    return tw
+
+
+TOURNAMENT_WEIGHTS = _build_tournament_weights()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ACTIVE WEIGHT SET SELECTOR
+# ─────────────────────────────────────────────────────────────────────────────
+# "season"     → CORE_WEIGHTS (Model A: backtested, 73.7% accuracy)
+# "tournament" → TOURNAMENT_WEIGHTS (Model B: Day-1-informed, skill-based)
+# ─── MODEL SELECTOR ─────────────────────────────────────────────────────────
+# "season"     → CORE_WEIGHTS (Model A: backtested 73.7%, the ROOT)
+# "tournament" → TOURNAMENT_WEIGHTS (Model B: Day-1-informed, standalone)
+#
+# CRITICAL INSIGHT FROM BACKTEST:
+#   Model B drops to 71.0% historically (-2.5%). The reason: removing
+#   top25_perf kills close-game (35-65%) accuracy by -13.3%.
+#
+#   CORRECT APPROACH: Keep Model A as the ROOT. Apply tournament insights
+#   as BRANCH modifiers (conditional probability shifts), not blanket
+#   weight changes. See docs/TREE_MODEL_ARCHITECTURE.md.
+#
+# TOURNAMENT_MODE = False → ROOT model + branch modifiers (RECOMMENDED)
+# TOURNAMENT_MODE = True  → Standalone Model B (experimental)
+TOURNAMENT_MODE = False
+
+ACTIVE_WEIGHTS = TOURNAMENT_WEIGHTS if TOURNAMENT_MODE else CORE_WEIGHTS
 
 PARAM_KEYS = list(CORE_WEIGHTS.keys())

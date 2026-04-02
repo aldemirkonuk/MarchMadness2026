@@ -153,25 +153,25 @@ def build_narrative_prob_func(
     finalize_narratives(narratives, injury_profiles)
     _cache: Dict[Tuple[str, str], float] = {}
 
-    def narrative_func(team_a: Team, team_b: Team) -> float:
-        key = (team_a.name, team_b.name)
+    def narrative_func(team_a: Team, team_b: Team, round_name: str = "R64") -> float:
+        key = (team_a.name, team_b.name, round_name)
         if key in _cache:
             return _cache[key]
 
-        p_base = base_func(team_a, team_b)
+        try:
+            p_base = base_func(team_a, team_b, round_name)
+        except TypeError:
+            p_base = base_func(team_a, team_b)
 
         adj_a = narratives[team_a.name].total_adjustment if team_a.name in narratives else 0.0
         adj_b = narratives[team_b.name].total_adjustment if team_b.name in narratives else 0.0
 
-        # A penalty on team_a (negative adj_a) reduces team_a's probability.
-        # A bonus on team_b (positive adj_b) also reduces team_a's probability.
-        # Net shift from A's perspective: adj_a - adj_b
         shift = adj_a - adj_b
 
         p_adj = float(np.clip(p_base + shift, 0.02, 0.98))
 
         _cache[key] = p_adj
-        _cache[(team_b.name, team_a.name)] = 1.0 - p_adj
+        _cache[(team_b.name, team_a.name, round_name)] = 1.0 - p_adj
         return p_adj
 
     return narrative_func

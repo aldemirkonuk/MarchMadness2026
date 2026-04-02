@@ -29,6 +29,16 @@ from src.utils import canonical_name
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
+# data/injuries.csv schema (one row per player; UTF-8 CSV):
+#   team              — canonical team name (matches KenPom / Team.name)
+#   player            — short name, e.g. "J. Jefferson"
+#   position          — G | F | C (single letter or short code)
+#   status            — OUT | QUESTIONABLE | DOUBTFUL | EXPECTED | PROBABLE
+#   injury_type       — free text (Knee, Foot, Undisclosed, etc.)
+#   earliest_return_round — R64 | R32 | S16 | E8 | F4 | Championship | NONE
+#   play_probability_r64 … play_probability_champ — float 0.0–1.0, availability
+#                         if the team reaches that round (0 = cannot play)
+#   notes             — context for humans + optional PPG/timeline for penalty floor
 ROUND_COLS = {
     "R64": "play_probability_r64",
     "R32": "play_probability_r32",
@@ -93,6 +103,23 @@ COLLAPSE_CATS_THRESHOLD = 4       # must lead at least 4 categories (stronger si
 COLLAPSE_BPR_SHARE_THRESHOLD = 0.20  # AND have >= 20% of team BPR
 COLLAPSE_ADDITIONAL_PENALTY = 0.10   # flat additional AdjEM penalty for system breakdown
 
+# ── Star Isolation Index (SII): BYU/Dybantsa problem ────────────────────
+# When a team's offense runs through ONE player (due to injury to #2 option
+# or simply roster construction), the star gets predictable and fatigued.
+# SII = (star_bpr_share) * (star_poss_share).  Higher = more isolated.
+#   SII > 0.08  → "star-dependent" — mild additional penalty
+#   SII > 0.12  → "star-isolated"  — significant penalty (team = one man)
+# Day 1 proof: BYU (Dybantsa 35 pts, 40 min, still lost by 8) had SII ~0.15
+STAR_ISOLATION_THRESHOLD_MILD = 0.08
+STAR_ISOLATION_THRESHOLD_SEVERE = 0.12
+STAR_ISOLATION_PENALTY_MILD = 0.04     # AdjEM penalty for star-dependent
+STAR_ISOLATION_PENALTY_SEVERE = 0.10   # AdjEM penalty for star-isolated
+
+# PPG penalty floor: minimum AdjEM penalty based on points-per-game
+# extracted from injury notes. Catches high-volume scorers on deep teams
+# where BPR share alone is diluted.
+PPG_PENALTY_FLOOR = {15.0: 0.08, 18.0: 0.12, 22.0: 0.18}
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Data Classes
@@ -134,6 +161,14 @@ class InjuredPlayer:
     non_effectant: bool = False
     non_effectant_reason: str = ""
 
+    # ── Injury severity tier (added for branch engine integration) ────────
+    # Tiers: OUT_SEASON, OUT_GAME, DOUBTFUL, QUESTIONABLE, PROBABLE
+    # "OUT_SEASON" = out 4+ weeks, fundamentally changes team identity
+    # "OUT_GAME"   = recently injured, out for this game specifically
+    severity_tier: str = ""              # computed in quantify_player_impacts
+    weeks_out: float = 0.0              # approximate weeks since injury
+    ppg_before_injury: float = 0.0      # PPG before going down (from notes)
+
 
 @dataclass
 class TeamInjuryProfile:
@@ -150,6 +185,13 @@ class TeamInjuryProfile:
     rebound_penalty: float = 0.0     # rbm/orb/drb degradation
     has_star_carrier_out: bool = False
     star_vacuum_penalty: float = 0.0  # post-ensemble multiplier
+
+    # ── Crippled roster detection (for Branch 15) ─────────────────────
+    has_crippled_roster: bool = False   # top-2 scorer out 4+ weeks
+    crippled_player_name: str = ""
+    crippled_weeks_out: float = 0.0
+    crippled_ppg_lost: float = 0.0
+    top_injured_severity_tier: str = "" # worst severity tier among effectant
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -455,6 +497,33 @@ def quantify_player_impacts(injuries: List[InjuredPlayer],
         effectant = [ip for ip in profile.injured_players if not ip.non_effectant]
         profile.total_penalty = sum(ip.penalty for ip in effectant)
         profile.has_star_carrier_out = any(ip.is_star_carrier for ip in effectant)
+
+        # ── Compute severity tiers for all effectant players ──────────────
+        for ip in effectant:
+            ip.severity_tier = compute_severity_tier(ip)
+            ip.weeks_out = _estimate_weeks_out(ip.notes)
+            ip.ppg_before_injury = _extract_ppg_from_notes_v2(ip.notes)
+
+        # ── Crippled roster detection ─────────────────────────────────────
+        # Check if any top-2 BPR player is OUT_SEASON (4+ weeks)
+        tier_priority = {"OUT_SEASON": 5, "OUT_GAME": 4, "DOUBTFUL": 3,
+                         "QUESTIONABLE": 2, "PROBABLE": 1, "": 0}
+        worst_tier = ""
+        for ip in effectant:
+            if tier_priority.get(ip.severity_tier, 0) > tier_priority.get(worst_tier, 0):
+                worst_tier = ip.severity_tier
+        profile.top_injured_severity_tier = worst_tier
+
+        # Crippled = top-2 BPR player out for 4+ weeks
+        top2_bpr = sorted(effectant, key=lambda x: x.bpr, reverse=True)[:2]
+        for ip in top2_bpr:
+            if ip.severity_tier == "OUT_SEASON" and ip.weeks_out >= 4:
+                profile.has_crippled_roster = True
+                profile.crippled_player_name = ip.player
+                profile.crippled_weeks_out = ip.weeks_out
+                profile.crippled_ppg_lost = ip.ppg_before_injury
+                break
+
         profiles[team_name] = profile
 
     return profiles
@@ -505,12 +574,105 @@ def _extract_apg_from_notes(notes: str) -> float:
 
 
 # PPG-based penalty floor: when a player's notes show high PPG but their
-# BPR share is low (team with deep talent), ensure a minimum penalty that
-# reflects their actual scoring production.
-PPG_PENALTY_FLOOR = {
-    15.0: 0.08,   # 15+ PPG → at least 0.08 penalty
-    18.0: 0.12,   # 18+ PPG → at least 0.12
-    22.0: 0.18,   # 22+ PPG → at least 0.18
+# PPG_PENALTY_FLOOR is defined in the Constants section at top of file.
+
+
+def compute_severity_tier(ip: "InjuredPlayer") -> str:
+    """Compute injury severity tier from status + play probabilities + notes.
+
+    Tiers (from worst to best):
+      OUT_SEASON   - out 4+ weeks, team identity has changed (e.g. Huff)
+      OUT_GAME     - out for this game but recent injury (< 4 weeks)
+      DOUBTFUL     - unlikely to play (< 30% chance)
+      QUESTIONABLE - uncertain (30-65% chance)
+      PROBABLE     - likely to play (> 65% chance)
+    """
+    status = ip.status.upper()
+    r64_prob = ip.play_probs.get("R64", 0.5)
+
+    if status == "OUT" or r64_prob == 0.0:
+        # Distinguish season-long absence from recent injury
+        weeks = _estimate_weeks_out(ip.notes)
+        if weeks >= 4.0:
+            return "OUT_SEASON"
+        return "OUT_GAME"
+    elif status == "DOUBTFUL" or r64_prob < 0.30:
+        return "DOUBTFUL"
+    elif status == "QUESTIONABLE" or r64_prob < 0.65:
+        return "QUESTIONABLE"
+    else:
+        return "PROBABLE"
+
+
+def _estimate_weeks_out(notes: str) -> float:
+    """Estimate how many weeks a player has been out from injury notes.
+
+    Looks for month references ("Jan", "Feb", etc.) and calculates
+    weeks from that month to mid-March (tournament time).
+    """
+    import re
+    notes_lower = notes.lower()
+
+    # Month mapping to approximate weeks before mid-March tournament
+    month_to_weeks = {
+        "jan": 9, "january": 9,
+        "feb": 5, "february": 5,
+        "mar": 2, "march": 2,
+        "dec": 12, "december": 12,
+        "nov": 16, "november": 16,
+        "oct": 20, "october": 20,
+    }
+
+    for month, weeks in month_to_weeks.items():
+        if month in notes_lower:
+            return weeks
+
+    # Look for explicit timeline: "4-8 week", "6 weeks"
+    timeline = re.search(r'(\d+)\s*[-–]\s*(\d+)\s*week', notes_lower)
+    if timeline:
+        return (int(timeline.group(1)) + int(timeline.group(2))) / 2
+
+    timeline_single = re.search(r'(\d+)\s*week', notes_lower)
+    if timeline_single:
+        return int(timeline_single.group(1))
+
+    # "since" + month
+    since_match = re.search(r'since\s+(?:early\s+|mid[- ]?|late\s+)?(\w+)', notes_lower)
+    if since_match:
+        month_str = since_match.group(1)
+        if month_str in month_to_weeks:
+            return month_to_weeks[month_str]
+
+    # Default: if OUT status, assume at least 2 weeks
+    return 2.0
+
+
+def _extract_ppg_from_notes_v2(notes: str) -> float:
+    """Extract PPG from notes, looking for patterns like '17.8 points per game'."""
+    import re
+    notes_lower = notes.lower()
+
+    # Pattern: "X.X ppg" or "X.X points per game" or "averaging X.X"
+    patterns = [
+        r'(\d+\.?\d*)\s*ppg',
+        r'(\d+\.?\d*)\s*points?\s*per\s*game',
+        r'averaging\s+(\d+\.?\d*)',
+        r'(\d+\.?\d*)\s*pts',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, notes_lower)
+        if match:
+            return float(match.group(1))
+    return 0.0
+
+
+# ── Severity tier multiplier for branch engine ────────────────────────────
+SEVERITY_TIER_MULTIPLIER = {
+    "OUT_SEASON":   1.00,  # Full branch trigger
+    "OUT_GAME":     1.00,  # Full branch trigger
+    "DOUBTFUL":     0.75,
+    "QUESTIONABLE": 0.40,
+    "PROBABLE":     0.10,
 }
 
 
@@ -618,6 +780,15 @@ def _fallback_role_based(injuries: List[InjuredPlayer]) -> Dict[str, TeamInjuryP
             ip.penalty = 0.0
         else:
             ip.penalty = _role_penalty(ip.status)
+            # PPG floor: ensure minimum penalty when notes show high PPG
+            ppg = _extract_ppg_from_notes(ip.notes)
+            if ppg > 0:
+                for threshold in sorted(PPG_PENALTY_FLOOR.keys(), reverse=True):
+                    if ppg >= threshold:
+                        floor = PPG_PENALTY_FLOOR[threshold]
+                        if ip.penalty < floor:
+                            ip.penalty = floor
+                        break
 
         profiles[ip.team].injured_players.append(ip)
 
@@ -790,6 +961,74 @@ def build_injury_mc_prob_func(base_prob_func, profiles: Dict[str, TeamInjuryProf
         return p_adjusted
 
     return _injury_adjusted_prob
+
+
+def compute_star_isolation(profiles: Dict[str, TeamInjuryProfile],
+                           player_df: pd.DataFrame) -> Dict[str, float]:
+    """Compute Star Isolation Index (SII) for each team.
+
+    SII = (top_player_bpr_share) * (top_player_poss_share)
+
+    This catches the BYU/Dybantsa problem: when a team's #2 option is
+    injured, the star becomes the ONLY option. Predictable and fatigued.
+
+    Returns: dict of team_name → SII value.  Also adds extra penalty to
+    the team's profile if SII exceeds thresholds.
+    """
+    sii_results = {}
+
+    if player_df.empty:
+        return sii_results
+
+    for team_name, profile in profiles.items():
+        # Find healthy top player's dominance on this team
+        team_players = player_df[player_df["team"] == team_name]
+        if team_players.empty:
+            continue
+
+        # Get BPR and poss columns
+        if "bpr" not in team_players.columns or "poss" not in team_players.columns:
+            continue
+
+        team_total_bpr = team_players["bpr"].sum()
+        team_total_poss = team_players["poss"].sum()
+
+        if team_total_bpr <= 0 or team_total_poss <= 0:
+            continue
+
+        # Exclude injured players (OUT status) from the "available" pool
+        out_players = {ip.player for ip in profile.injured_players
+                       if ip.status == "OUT" and not ip.non_effectant}
+
+        available = team_players[~team_players["name"].isin(out_players)]
+        if available.empty:
+            continue
+
+        # Find the top remaining player by BPR
+        top_idx = available["bpr"].idxmax()
+        top_bpr = available.loc[top_idx, "bpr"]
+        top_poss = available.loc[top_idx, "poss"]
+
+        # SII = share of remaining production × share of remaining usage
+        remaining_bpr = available["bpr"].sum()
+        remaining_poss = available["poss"].sum()
+
+        if remaining_bpr <= 0 or remaining_poss <= 0:
+            continue
+
+        bpr_share = top_bpr / remaining_bpr
+        poss_share = top_poss / remaining_poss
+        sii = bpr_share * poss_share
+
+        sii_results[team_name] = sii
+
+        # Apply penalty if SII exceeds thresholds
+        if sii >= STAR_ISOLATION_THRESHOLD_SEVERE:
+            profile.adj_em_penalty += STAR_ISOLATION_PENALTY_SEVERE
+        elif sii >= STAR_ISOLATION_THRESHOLD_MILD:
+            profile.adj_em_penalty += STAR_ISOLATION_PENALTY_MILD
+
+    return sii_results
 
 
 def _get_round_penalty(team_name: str, profiles: Dict[str, TeamInjuryProfile],

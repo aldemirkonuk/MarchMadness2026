@@ -542,8 +542,13 @@ def load_all_teams() -> List[Team]:
     matchups_df = pd.read_csv(os.path.join(DATA_DIR, "matchups.csv"))
     team_region_map = {}
     for _, row in matchups_df.iterrows():
-        team_region_map[canonical_name(str(row["team_a"]).strip())] = row["region"]
-        team_region_map[canonical_name(str(row["team_b"]).strip())] = row["region"]
+        region = row["region"]
+        for col in ["team_a", "team_b"]:
+            raw = str(row[col]).strip()
+            team_region_map[canonical_name(raw)] = region
+            if "/" in raw:
+                for part in raw.split("/"):
+                    team_region_map[canonical_name(part.strip())] = region
 
     teams = []
     for _, row in kb_2026.iterrows():
@@ -555,6 +560,7 @@ def load_all_teams() -> List[Team]:
             name=name,
             seed=sd,
             region=team_region_map.get(name, ""),
+            conference=str(row.get("CONF", "")).strip(),
         )
 
         # Tier 1
