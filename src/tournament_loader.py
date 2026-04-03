@@ -296,6 +296,41 @@ def load_tournament_box_scores(base_dir: str = None) -> Dict[str, TeamTournament
     return profiles
 
 
+def compute_comeback_rates(profiles: Dict[str, TeamTournamentProfile],
+                           teams=None) -> Dict[str, tuple]:
+    """Compute comeback rate for each team from tournament + season data.
+
+    Returns dict of team -> (comeback_rate, games_trailing_at_half).
+    comeback_rate = fraction of trailing-at-half games that were won.
+    """
+    rates: Dict[str, tuple] = {}
+
+    for team, p in profiles.items():
+        trailing_games = 0
+        comeback_wins = 0
+        for g in p.games:
+            if g.h1_score > 0 and g.h1_opp_score > 0:
+                if g.h1_score < g.h1_opp_score:
+                    trailing_games += 1
+                    if g.won:
+                        comeback_wins += 1
+
+        # Supplement with season-level proxy: q3_adj_strength > 0 means team
+        # improves from H1 to H2 (a correlate of comeback ability).
+        if teams:
+            t_obj = next((t for t in teams.values() if t.name == team), None)
+            if t_obj and hasattr(t_obj, 'q3_adj_strength') and t_obj.q3_adj_strength > 1.5:
+                trailing_games += 3
+                comeback_wins += 2
+
+        if trailing_games > 0:
+            rates[team] = (comeback_wins / trailing_games, trailing_games)
+        else:
+            rates[team] = (0.0, 0)
+
+    return rates
+
+
 def tournament_profile_report(profiles: Dict[str, TeamTournamentProfile]) -> str:
     """Print tournament profile summary for all teams with data."""
     lines = []

@@ -198,6 +198,19 @@ def main():
         print(f"  WARNING: Tournament box-score loader failed ({e})")
         traceback.print_exc()
 
+    # ── Step 8c1b: Compute comeback rates from tournament data ─────────
+    comeback_rates = {}
+    try:
+        from src.tournament_loader import compute_comeback_rates
+        teams_dict = {t.name: t for t in teams}
+        if tourney_profiles:
+            comeback_rates = compute_comeback_rates(tourney_profiles, teams_dict)
+            active = [(t, r, n) for t, (r, n) in comeback_rates.items() if n >= 2 and r > 0.25]
+            if active:
+                print(f"  Comeback resilience profiles: {[(t, f'{r:.0%}', f'{n}g') for t, r, n in active]}")
+    except Exception as e:
+        print(f"  WARNING: Comeback rate computation failed ({e})")
+
     # ── Step 8c2: Load tournament momentum ─────────────────────────────
     tourney_momentum = {}
     try:
@@ -224,7 +237,7 @@ def main():
 
             print("  [SCENARIO ENGINE] 4-category evidence analysis per matchup...")
             for m in matchups:
-                ctx = _build_scenario_context(m, injury_profiles, _sii, tourney_profiles, tourney_momentum)
+                ctx = _build_scenario_context(m, injury_profiles, _sii, tourney_profiles, tourney_momentum, comeback_rates)
                 result = evaluate_scenario(ctx)
                 scenario_results[(m.team_a.name, m.team_b.name)] = result
 
@@ -264,7 +277,7 @@ def main():
     start = time.time()
 
     # Build ensemble prob_func: blends 1A + 1B per matchup using calibrated lambda
-    ensemble_prob_func = _build_ensemble_prob_func(xgb_model, h2h_lookup)
+    ensemble_prob_func = _build_ensemble_prob_func(xgb_model, h2h_lookup, comeback_rates)
 
     # ── Narrative Verification Layer (post-ensemble, pre-MC) ──────────
     narrative_data = {}
@@ -550,7 +563,7 @@ def _run_phase_1b(teams, matchups):
         return None
 
 
-def _build_ensemble_prob_func(xgb_model, h2h_lookup):
+def _build_ensemble_prob_func(xgb_model, h2h_lookup, comeback_rates=None):
     """Build a probability function that blends 1A + 1B per matchup.
 
     This replaces the old dual-simulation approach: instead of running
@@ -693,6 +706,10 @@ def _build_ensemble_prob_func(xgb_model, h2h_lookup):
                     first_tourney_b=team_b.exp < 1.5,
                     foul_trouble_rate_a=team_a.foul_trouble_impact,
                     foul_trouble_rate_b=team_b.foul_trouble_impact,
+                    comeback_rate_a=comeback_rates.get(team_a.name, (0.0, 0))[0] if comeback_rates else 0.0,
+                    comeback_rate_b=comeback_rates.get(team_b.name, (0.0, 0))[0] if comeback_rates else 0.0,
+                    comeback_games_a=comeback_rates.get(team_a.name, (0.0, 0))[1] if comeback_rates else 0,
+                    comeback_games_b=comeback_rates.get(team_b.name, (0.0, 0))[1] if comeback_rates else 0,
                 )
                 result = evaluate_scenario(ctx)
                 p_final = result.p_final
@@ -765,7 +782,7 @@ _RECENT_FINAL_FOURS = {
 }
 
 
-def _build_scenario_context(matchup, injury_profiles, sii_results, tourney_profiles=None, tourney_momentum=None):
+def _build_scenario_context(matchup, injury_profiles, sii_results, tourney_profiles=None, tourney_momentum=None, comeback_rates=None):
     """Build ScenarioContext from a Matchup + all available data sources."""
     from src.scenario_engine import ScenarioContext
     a = matchup.team_a
@@ -872,6 +889,10 @@ def _build_scenario_context(matchup, injury_profiles, sii_results, tourney_profi
         first_tourney_b=b.exp < 1.5,
         recent_final_fours_a=_RECENT_FINAL_FOURS.get(a.name, 0),
         recent_final_fours_b=_RECENT_FINAL_FOURS.get(b.name, 0),
+        comeback_rate_a=comeback_rates.get(a.name, (0.0, 0))[0] if comeback_rates else 0.0,
+        comeback_rate_b=comeback_rates.get(b.name, (0.0, 0))[0] if comeback_rates else 0.0,
+        comeback_games_a=comeback_rates.get(a.name, (0.0, 0))[1] if comeback_rates else 0,
+        comeback_games_b=comeback_rates.get(b.name, (0.0, 0))[1] if comeback_rates else 0,
         sos_rank_a=getattr(a, 'sos_rank', 50),
         sos_rank_b=getattr(b, 'sos_rank', 50),
         q1_wins_a=int(getattr(a, 'q1_record', 0.5) * 10),

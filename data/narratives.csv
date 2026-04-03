@@ -35,3 +35,7 @@ Illinois,momentum,bonus,0.02,high,"First Final Four since 2005. Wagler named Sou
 Michigan,momentum,bonus,0.02,high,"35-3 record. 21-0 run blew open E8. Lendeborg 27pts. Cadeau 10ast. Five double-digit scorers in E8. First F4 since 2018."
 Arizona,momentum,bonus,0.02,high,"36-2 record. Peat 20pts in E8. Stormed back from 7pt deficit H2. First Final Four since 2001."
 Iowa State,personnel_loss,penalty,0.03,high,"J. Jefferson All-America F OUT entire tournament. 16.4 PPG 7.4 REB 4.8 AST. Lost S16 to Tennessee 62-76."
+Michigan,tactical_counter,bonus,0.02,high,"47.8% 3PT in tourney (45 made). Lowest isolation rate in country (2.7%). Ball movement neutralizes man defense. Mara 7-3 100 blocks."
+Illinois,tactical_counter,bonus,0.01,high,"#1 AdjOE all-time. Lowest TOV% nationally. 78% FT best in F4. Wagler shoots 40%+ both catch-and-shoot and pull-up."
+Connecticut,other,bonus,0.02,high,"17-1 last 18 NCAA tournament games. Comeback DNA: trailed 19pts E8 and won. Reed Jr averaging 21.8/13.5 in tourney."
+Arizona,tactical_counter,bonus,0.01,high,"+72 FTA through 4 tourney games. Paint-first offense under Tommy Lloyd. Peat/Krivas frontcourt imposing. 63.8% FG in S16."
