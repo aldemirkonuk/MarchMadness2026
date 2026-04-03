@@ -143,6 +143,8 @@ class Team:
     tourney_tov_pct: float = 0.0
     tourney_bench_pct: float = 0.0
     tourney_games: int = 0
+    tourney_data_confidence: float = 0.0
+    tourney_comeback_confidence: float = 0.0
     traj_fg_pct: float = 0.0
     traj_ast: float = 0.0
     traj_tov: float = 0.0

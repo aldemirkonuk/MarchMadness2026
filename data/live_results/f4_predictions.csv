@@ -1,4 +1,4 @@
-round,team_a,seed_a,team_b,seed_b,predicted_winner,win_prob_a,predicted_score_a,predicted_score_b,key_factor,risk_factor
-F4,Illinois,3,Connecticut,2,Illinois,0.60,68,63,FT% gap (78% vs 71.6%) decisive in slow-tempo grind,UConn comeback DNA (17-1 last 18 tourney games)
-F4,Michigan,1,Arizona,1,Michigan,0.55,82,78,3PT shooting (47.8% tourney avg) creates spacing Arizona cannot match from perimeter,Arizona FT dominance (+72 FTA in tourney) closes gaps late
-Championship,Michigan,1,Illinois,3,Michigan,0.58,72,66,Mara rim protection + Lendeborg two-way impact neutralizes Illinois paint offense,Wagler 28+ performance makes Illinois unbeatable
+round,team_a,seed_a,team_b,seed_b,predicted_winner,win_prob_a,confidence
+F4,Illinois,3,Connecticut,2,Illinois,0.5496,0.5496
+F4,Michigan,1,Arizona,1,Michigan,0.5897,0.5897
+Championship,Illinois,3,Michigan,1,Michigan,0.2195,0.7805

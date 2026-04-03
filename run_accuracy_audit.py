@@ -8,6 +8,8 @@ import csv
 import os
 import math
 
+from src.live_data_validation import canonical_team_name, load_validated_tournament_rows, validation_report
+
 BASE = os.path.dirname(os.path.abspath(__file__))
 LIVE = os.path.join(BASE, "data", "live_results")
 RESULTS = os.path.join(BASE, "data", "results")
@@ -21,13 +23,17 @@ def _load_csv(path):
 
 
 def _canonical(name):
-    return name.strip().replace("UConn", "Connecticut").replace("UMBC", "Howard")
+    return canonical_team_name(name)
 
 
 def main():
     print("=" * 80)
     print("  TOURNAMENT ACCURACY AUDIT — ALL 60 GAMES")
     print("=" * 80)
+
+    _, validation_issues = load_validated_tournament_rows(BASE)
+    if validation_issues:
+        print(f"\n{validation_report(validation_issues)}\n")
 
     # ── Load actual results ──────────────────────────────────────────────
     actual = {}
@@ -100,6 +106,13 @@ def main():
     # ── Match predictions to results ─────────────────────────────────────
     round_stats = {}
     tier_stats = {"LOCK": [0, 0], "LEAN": [0, 0], "TOSS-UP": [0, 0]}
+    reliability_bins = {
+        "50-60%": [0.0, 0, 0],
+        "60-70%": [0.0, 0, 0],
+        "70-80%": [0.0, 0, 0],
+        "80-90%": [0.0, 0, 0],
+        "90-100%": [0.0, 0, 0],
+    }
     misses = []
     brier_sum = 0.0
     brier_n = 0
@@ -125,6 +138,20 @@ def main():
         tier = "LOCK" if pred["prob"] > 0.80 else "LEAN" if pred["prob"] > 0.60 else "TOSS-UP"
         tier_stats[tier][0] += int(correct)
         tier_stats[tier][1] += 1
+
+        if pred["prob"] < 0.60:
+            bin_key = "50-60%"
+        elif pred["prob"] < 0.70:
+            bin_key = "60-70%"
+        elif pred["prob"] < 0.80:
+            bin_key = "70-80%"
+        elif pred["prob"] < 0.90:
+            bin_key = "80-90%"
+        else:
+            bin_key = "90-100%"
+        reliability_bins[bin_key][0] += pred["prob"]
+        reliability_bins[bin_key][1] += int(correct)
+        reliability_bins[bin_key][2] += 1
 
         prob_winner = pred["prob"] if correct else (1 - pred["prob"])
         brier_sum += (1 - prob_winner) ** 2
@@ -155,6 +182,15 @@ def main():
         c, t = tier_stats[tier]
         if t > 0:
             print(f"    {tier:8s}: {c}/{t} = {c/max(1,t):.1%}")
+
+    print("\n  RELIABILITY BINS:")
+    for label in ["50-60%", "60-70%", "70-80%", "80-90%", "90-100%"]:
+        prob_sum, correct_sum, total = reliability_bins[label]
+        if total > 0:
+            avg_conf = prob_sum / total
+            realized = correct_sum / total
+            gap = realized - avg_conf
+            print(f"    {label:8s}: avg_conf={avg_conf:.1%} realized={realized:.1%} gap={gap:+.1%} ({total} games)")
 
     print(f"\n  MISSES ({len(misses)} total):")
     print(f"  {'Round':<6} {'Matchup':<35} {'Predicted':<18} {'Actual':<18} {'Prob':>6} {'Margin':>6} {'Type'}")

@@ -5,10 +5,10 @@ Data source: data/live_results/tournament_box_scores.csv
 """
 
 import os
-import csv
-import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List
+
+from src.live_data_validation import load_validated_tournament_rows
 
 
 @dataclass
@@ -60,6 +60,9 @@ class TeamTournamentProfile:
     ast_rate: float = 0.0
     paint_pct: float = 0.0
     bench_pct: float = 0.0
+    data_confidence: float = 0.0
+    comeback_confidence: float = 0.0
+    stat_coverage: Dict[str, float] = field(default_factory=dict)
 
     # Trajectory slopes (per-game change)
     traj_fg_pct: float = 0.0
@@ -106,6 +109,14 @@ def _slope(values: List[float]) -> float:
     return num / den
 
 
+def _mean(values: List[float]) -> float:
+    return sum(values) / len(values) if values else 0.0
+
+
+def _coverage(values: List[float], games: int) -> float:
+    return len(values) / max(1, games)
+
+
 def load_tournament_box_scores(base_dir: str = None) -> Dict[str, TeamTournamentProfile]:
     """Load tournament box scores and compute per-team profiles.
 
@@ -114,113 +125,116 @@ def load_tournament_box_scores(base_dir: str = None) -> Dict[str, TeamTournament
     if base_dir is None:
         base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 
-    path = os.path.join(base_dir, "data", "live_results", "tournament_box_scores.csv")
-    if not os.path.isfile(path):
+    rows, _issues = load_validated_tournament_rows(base_dir)
+    if not rows:
         return {}
 
     # Parse all rows into per-team game lists
     team_games: Dict[str, List[TournamentGameStats]] = {}
 
-    with open(path, 'r') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            score_a = _safe_int(row.get('score_a'))
-            score_b = _safe_int(row.get('score_b'))
-            winner = row.get('winner', '').strip()
-            if score_a == 0 and score_b == 0:
-                continue
+    for row in rows:
+        score_a = _safe_int(row.get('score_a'))
+        score_b = _safe_int(row.get('score_b'))
+        winner = row.get('winner', '').strip()
+        if score_a == 0 and score_b == 0:
+            continue
 
-            team_a = row.get('team_a', '').strip()
-            team_b = row.get('team_b', '').strip()
-            rnd = row.get('round', '').strip()
-            date = row.get('date', '').strip()
+        team_a = row.get('team_a', '').strip()
+        team_b = row.get('team_b', '').strip()
+        rnd = row.get('round', '').strip()
+        date = row.get('date', '').strip()
 
-            h1_a = _safe_int(row.get('h1_score_a'))
-            h1_b = _safe_int(row.get('h1_score_b'))
-            fg_pct_a = _safe_float(row.get('fg_pct_a'))
-            fg_pct_b = _safe_float(row.get('fg_pct_b'))
-            oreb_a = _safe_int(row.get('oreb_a'))
-            oreb_b = _safe_int(row.get('oreb_b'))
-            dreb_a = _safe_int(row.get('dreb_a'))
-            dreb_b = _safe_int(row.get('dreb_b'))
-            ast_a = _safe_int(row.get('ast_a'))
-            ast_b = _safe_int(row.get('ast_b'))
-            tov_a = _safe_int(row.get('tov_a'))
-            tov_b = _safe_int(row.get('tov_b'))
-            stl_a = _safe_int(row.get('stl_a'))
-            stl_b = _safe_int(row.get('stl_b'))
-            blk_a = _safe_int(row.get('blk_a'))
-            blk_b = _safe_int(row.get('blk_b'))
-            pf_a = _safe_int(row.get('pf_a'))
-            pf_b = _safe_int(row.get('pf_b'))
-            paint_a = _safe_int(row.get('pts_in_paint_a'))
-            paint_b = _safe_int(row.get('pts_in_paint_b'))
-            fb_a = _safe_int(row.get('fast_break_pts_a'))
-            fb_b = _safe_int(row.get('fast_break_pts_b'))
-            sc_a = _safe_int(row.get('second_chance_pts_a'))
-            sc_b = _safe_int(row.get('second_chance_pts_b'))
-            bench_a = _safe_int(row.get('bench_pts_a'))
-            bench_b = _safe_int(row.get('bench_pts_b'))
+        h1_a = _safe_int(row.get('h1_score_a'))
+        h1_b = _safe_int(row.get('h1_score_b'))
+        fg_pct_a = _safe_float(row.get('fg_pct_a'))
+        fg_pct_b = _safe_float(row.get('fg_pct_b'))
+        oreb_a = _safe_int(row.get('oreb_a'))
+        oreb_b = _safe_int(row.get('oreb_b'))
+        dreb_a = _safe_int(row.get('dreb_a'))
+        dreb_b = _safe_int(row.get('dreb_b'))
+        ast_a = _safe_int(row.get('ast_a'))
+        ast_b = _safe_int(row.get('ast_b'))
+        tov_a = _safe_int(row.get('tov_a'))
+        tov_b = _safe_int(row.get('tov_b'))
+        stl_a = _safe_int(row.get('stl_a'))
+        stl_b = _safe_int(row.get('stl_b'))
+        blk_a = _safe_int(row.get('blk_a'))
+        blk_b = _safe_int(row.get('blk_b'))
+        pf_a = _safe_int(row.get('pf_a'))
+        pf_b = _safe_int(row.get('pf_b'))
+        paint_a = _safe_int(row.get('pts_in_paint_a'))
+        paint_b = _safe_int(row.get('pts_in_paint_b'))
+        fb_a = _safe_int(row.get('fast_break_pts_a'))
+        fb_b = _safe_int(row.get('fast_break_pts_b'))
+        sc_a = _safe_int(row.get('second_chance_pts_a'))
+        sc_b = _safe_int(row.get('second_chance_pts_b'))
+        bench_a = _safe_int(row.get('bench_pts_a'))
+        bench_b = _safe_int(row.get('bench_pts_b'))
 
-            three_made_a = _safe_int(row.get('three_pt_made_a'))
-            three_att_a = _safe_int(row.get('three_pt_att_a'))
-            three_pct_a = _safe_float(row.get('three_pt_pct_a'))
-            three_made_b = _safe_int(row.get('three_pt_made_b'))
-            three_att_b = _safe_int(row.get('three_pt_att_b'))
-            three_pct_b = _safe_float(row.get('three_pt_pct_b'))
+        three_made_a = _safe_int(row.get('three_pt_made_a'))
+        three_att_a = _safe_int(row.get('three_pt_att_a'))
+        three_pct_a = _safe_float(row.get('three_pt_pct_a'))
+        three_made_b = _safe_int(row.get('three_pt_made_b'))
+        three_att_b = _safe_int(row.get('three_pt_att_b'))
+        three_pct_b = _safe_float(row.get('three_pt_pct_b'))
 
-            ft_a = _safe_int(row.get('ft_made_a'))
-            fta_a = _safe_int(row.get('ft_att_a'))
-            ft_b = _safe_int(row.get('ft_made_b'))
-            fta_b = _safe_int(row.get('ft_att_b'))
+        ft_a = _safe_int(row.get('ft_made_a'))
+        fta_a = _safe_int(row.get('ft_att_a'))
+        ft_b = _safe_int(row.get('ft_made_b'))
+        fta_b = _safe_int(row.get('ft_att_b'))
 
-            fg_a = _safe_int(row.get('fg_made_a', 0))
-            fga_a = _safe_int(row.get('fg_att_a', 0))
-            fg_b = _safe_int(row.get('fg_made_b', 0))
-            fga_b = _safe_int(row.get('fg_att_b', 0))
+        fg_a = _safe_int(row.get('fg_made_a', 0))
+        fga_a = _safe_int(row.get('fg_att_a', 0))
+        fg_b = _safe_int(row.get('fg_made_b', 0))
+        fga_b = _safe_int(row.get('fg_att_b', 0))
 
-            # If fg/fga not directly available, try to derive from fg_pct + score
-            # (tournament_box_scores.csv may store fg_pct but not fg/fga directly)
-            if fga_a == 0 and fg_pct_a > 0 and score_a > 0:
-                # Estimate: score = 2*FG + 3PT + FT => FG = (score - 3PT - FT) / 2 roughly
-                pass  # We'll use fg_pct directly when computing eFG
+        # If fg/fga not directly available, try to derive from fg_pct + score
+        # (tournament_box_scores.csv may store fg_pct but not fg/fga directly)
+        if fga_a == 0 and fg_pct_a > 0 and score_a > 0:
+            pass
 
-            has_box_data = (oreb_a > 0 or ast_a > 0 or tov_a > 0 or paint_a > 0)
+        has_box_data = any([
+            oreb_a > 0, ast_a > 0, tov_a > 0, paint_a > 0,
+            fg_pct_a > 0, three_pct_a > 0, fta_a > 0, bench_a > 0,
+        ])
 
-            if team_a and has_box_data:
-                game_a = TournamentGameStats(
-                    round=rnd, date=date, opponent=team_b,
-                    score=score_a, opp_score=score_b,
-                    won=winner == team_a,
-                    h1_score=h1_a, h1_opp_score=h1_b,
-                    fg_pct=fg_pct_a,
-                    three_made=three_made_a, three_att=three_att_a, three_pct=three_pct_a,
-                    ft=ft_a, fta=fta_a,
-                    oreb=oreb_a, dreb=dreb_a, total_reb=oreb_a + dreb_a,
-                    opp_dreb=dreb_b,
-                    ast=ast_a, tov=tov_a, stl=stl_a, blk=blk_a, pf=pf_a,
-                    pts_in_paint=paint_a, fast_break_pts=fb_a,
-                    second_chance_pts=sc_a, bench_pts=bench_a,
-                )
-                team_games.setdefault(team_a, []).append(game_a)
+        if team_a and has_box_data:
+            game_a = TournamentGameStats(
+                round=rnd, date=date, opponent=team_b,
+                score=score_a, opp_score=score_b,
+                won=winner == team_a,
+                h1_score=h1_a, h1_opp_score=h1_b,
+                fg_pct=fg_pct_a,
+                three_made=three_made_a, three_att=three_att_a, three_pct=three_pct_a,
+                ft=ft_a, fta=fta_a,
+                oreb=oreb_a, dreb=dreb_a, total_reb=oreb_a + dreb_a,
+                opp_dreb=dreb_b,
+                ast=ast_a, tov=tov_a, stl=stl_a, blk=blk_a, pf=pf_a,
+                pts_in_paint=paint_a, fast_break_pts=fb_a,
+                second_chance_pts=sc_a, bench_pts=bench_a,
+            )
+            team_games.setdefault(team_a, []).append(game_a)
 
-            has_box_data_b = (oreb_b > 0 or ast_b > 0 or tov_b > 0 or paint_b > 0)
-            if team_b and has_box_data_b:
-                game_b = TournamentGameStats(
-                    round=rnd, date=date, opponent=team_a,
-                    score=score_b, opp_score=score_a,
-                    won=winner == team_b,
-                    h1_score=h1_b, h1_opp_score=h1_a,
-                    fg_pct=fg_pct_b,
-                    three_made=three_made_b, three_att=three_att_b, three_pct=three_pct_b,
-                    ft=ft_b, fta=fta_b,
-                    oreb=oreb_b, dreb=dreb_b, total_reb=oreb_b + dreb_b,
-                    opp_dreb=dreb_a,
-                    ast=ast_b, tov=tov_b, stl=stl_b, blk=blk_b, pf=pf_b,
-                    pts_in_paint=paint_b, fast_break_pts=fb_b,
-                    second_chance_pts=sc_b, bench_pts=bench_b,
-                )
-                team_games.setdefault(team_b, []).append(game_b)
+        has_box_data_b = any([
+            oreb_b > 0, ast_b > 0, tov_b > 0, paint_b > 0,
+            fg_pct_b > 0, three_pct_b > 0, fta_b > 0, bench_b > 0,
+        ])
+        if team_b and has_box_data_b:
+            game_b = TournamentGameStats(
+                round=rnd, date=date, opponent=team_a,
+                score=score_b, opp_score=score_a,
+                won=winner == team_b,
+                h1_score=h1_b, h1_opp_score=h1_a,
+                fg_pct=fg_pct_b,
+                three_made=three_made_b, three_att=three_att_b, three_pct=three_pct_b,
+                ft=ft_b, fta=fta_b,
+                oreb=oreb_b, dreb=dreb_b, total_reb=oreb_b + dreb_b,
+                opp_dreb=dreb_a,
+                ast=ast_b, tov=tov_b, stl=stl_b, blk=blk_b, pf=pf_b,
+                pts_in_paint=paint_b, fast_break_pts=fb_b,
+                second_chance_pts=sc_b, bench_pts=bench_b,
+            )
+            team_games.setdefault(team_b, []).append(game_b)
 
     # Build profiles
     profiles: Dict[str, TeamTournamentProfile] = {}
@@ -230,15 +244,28 @@ def load_tournament_box_scores(base_dir: str = None) -> Dict[str, TeamTournament
         profile = TeamTournamentProfile(team=team, games=games, n_games=len(games))
 
         total_fg_pct = [g.fg_pct for g in games if g.fg_pct > 0]
-        total_ast = [g.ast for g in games]
-        total_tov = [g.tov for g in games]
-        total_paint = [g.pts_in_paint for g in games if g.score > 0]
-        total_bench = [g.bench_pts for g in games if g.score > 0]
-        total_score = [g.score for g in games]
+        total_3pt_pct = [g.three_pct for g in games if g.three_pct > 0]
+        total_ast = [float(g.ast) for g in games if g.ast > 0]
+        total_tov = [float(g.tov) for g in games if g.tov > 0]
+        total_paint = [float(g.pts_in_paint) for g in games if g.pts_in_paint > 0 and g.score > 0]
+        total_bench = [float(g.bench_pts) for g in games if g.bench_pts > 0 and g.score > 0]
+        total_score = [g.score for g in games if g.score > 0]
+
+        profile.stat_coverage = {
+            "fg_pct": _coverage(total_fg_pct, profile.n_games),
+            "three_pct": _coverage(total_3pt_pct, profile.n_games),
+            "ast": _coverage(total_ast, profile.n_games),
+            "tov": _coverage(total_tov, profile.n_games),
+            "paint": _coverage(total_paint, profile.n_games),
+            "bench": _coverage(total_bench, profile.n_games),
+            "halftime": _coverage([1.0 for g in games if g.h1_score > 0 and g.h1_opp_score > 0], profile.n_games),
+        }
+        profile.data_confidence = _mean(list(profile.stat_coverage.values()))
+        profile.comeback_confidence = profile.stat_coverage["halftime"]
 
         if total_fg_pct:
-            avg_fg_pct = sum(total_fg_pct) / len(total_fg_pct)
-            avg_3pt_pct = sum(g.three_pct for g in games if g.three_pct > 0) / max(1, sum(1 for g in games if g.three_pct > 0))
+            avg_fg_pct = _mean(total_fg_pct)
+            avg_3pt_pct = _mean(total_3pt_pct)
             profile.efg = avg_fg_pct + 0.5 * (avg_3pt_pct / 100.0 if avg_3pt_pct > 1 else avg_3pt_pct) * 0.3
 
         if total_tov and total_score:
@@ -272,11 +299,11 @@ def load_tournament_box_scores(base_dir: str = None) -> Dict[str, TeamTournament
 
         # Trajectory slopes
         if len(games) >= 2:
-            profile.traj_fg_pct = _slope([g.fg_pct for g in games if g.fg_pct > 0]) if total_fg_pct else 0.0
-            profile.traj_ast = _slope([float(g.ast) for g in games])
-            profile.traj_tov = _slope([float(g.tov) for g in games])
-            profile.traj_paint = _slope([float(g.pts_in_paint) for g in games if g.score > 0]) if total_paint else 0.0
-            profile.traj_bench = _slope([float(g.bench_pts) for g in games if g.score > 0]) if total_bench else 0.0
+            profile.traj_fg_pct = _slope(total_fg_pct) if len(total_fg_pct) >= 2 else 0.0
+            profile.traj_ast = _slope(total_ast) if len(total_ast) >= 2 else 0.0
+            profile.traj_tov = _slope(total_tov) if len(total_tov) >= 2 else 0.0
+            profile.traj_paint = _slope(total_paint) if len(total_paint) >= 2 else 0.0
+            profile.traj_bench = _slope(total_bench) if len(total_bench) >= 2 else 0.0
 
             n_accel = 0
             if profile.traj_fg_pct > 2.0:
@@ -296,37 +323,26 @@ def load_tournament_box_scores(base_dir: str = None) -> Dict[str, TeamTournament
     return profiles
 
 
-def compute_comeback_rates(profiles: Dict[str, TeamTournamentProfile],
-                           teams=None) -> Dict[str, tuple]:
-    """Compute comeback rate for each team from tournament + season data.
-
-    Returns dict of team -> (comeback_rate, games_trailing_at_half).
-    comeback_rate = fraction of trailing-at-half games that were won.
-    """
+def compute_comeback_rates(profiles: Dict[str, TeamTournamentProfile], teams=None) -> Dict[str, tuple]:
+    """Compute comeback rate from halftime deficits with minimal season fallback."""
     rates: Dict[str, tuple] = {}
 
-    for team, p in profiles.items():
+    for team, profile in profiles.items():
         trailing_games = 0
         comeback_wins = 0
-        for g in p.games:
-            if g.h1_score > 0 and g.h1_opp_score > 0:
-                if g.h1_score < g.h1_opp_score:
-                    trailing_games += 1
-                    if g.won:
-                        comeback_wins += 1
+        for game in profile.games:
+            if game.h1_score > 0 and game.h1_opp_score > 0 and game.h1_score < game.h1_opp_score:
+                trailing_games += 1
+                if game.won:
+                    comeback_wins += 1
 
-        # Supplement with season-level proxy: q3_adj_strength > 0 means team
-        # improves from H1 to H2 (a correlate of comeback ability).
         if teams:
-            t_obj = next((t for t in teams.values() if t.name == team), None)
-            if t_obj and hasattr(t_obj, 'q3_adj_strength') and t_obj.q3_adj_strength > 1.5:
-                trailing_games += 3
-                comeback_wins += 2
+            team_obj = next((t for t in teams.values() if t.name == team), None)
+            if team_obj and getattr(team_obj, "q3_adj_strength", 0.0) > 1.5 and trailing_games < 2:
+                trailing_games += 1
+                comeback_wins += 1
 
-        if trailing_games > 0:
-            rates[team] = (comeback_wins / trailing_games, trailing_games)
-        else:
-            rates[team] = (0.0, 0)
+        rates[team] = ((comeback_wins / trailing_games), trailing_games) if trailing_games > 0 else (0.0, 0)
 
     return rates
 
@@ -344,6 +360,12 @@ def tournament_profile_report(profiles: Dict[str, TeamTournamentProfile]) -> str
         lines.append(f"\n  {team} ({p.n_games} tournament games):")
         lines.append(f"    eFG: {p.efg:.3f} | TOV%: {p.tov_pct:.3f} | ORB%: {p.orb_pct:.3f} | FTR: {p.ftr:.3f}")
         lines.append(f"    AST rate: {p.ast_rate:.2f} | Paint%: {p.paint_pct:.1%} | Bench%: {p.bench_pct:.1%}")
+        lines.append(
+            f"    Data confidence: {p.data_confidence:.0%} | "
+            f"FG {p.stat_coverage.get('fg_pct', 0):.0%}, 3PT {p.stat_coverage.get('three_pct', 0):.0%}, "
+            f"AST {p.stat_coverage.get('ast', 0):.0%}, TOV {p.stat_coverage.get('tov', 0):.0%}, "
+            f"Paint {p.stat_coverage.get('paint', 0):.0%}, Half {p.stat_coverage.get('halftime', 0):.0%}"
+        )
 
         if p.n_games >= 2:
             accel_label = f"{p.n_accelerating}/5 stats ACCELERATING" if p.n_accelerating >= 2 else "stable"

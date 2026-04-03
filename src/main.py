@@ -170,7 +170,11 @@ def main():
     # ── Step 8c: Load tournament box scores & blend upstream ──────────
     tourney_profiles = {}
     try:
+        from src.live_data_validation import load_validated_tournament_rows, validation_report
         from src.tournament_loader import load_tournament_box_scores, tournament_profile_report
+        _rows, validation_issues = load_validated_tournament_rows()
+        if validation_issues:
+            print(f"\n{validation_report(validation_issues)}")
         tourney_profiles = load_tournament_box_scores()
         if tourney_profiles:
             print(f"  Tournament box scores loaded for {len(tourney_profiles)} teams")
@@ -184,6 +188,8 @@ def main():
                     t.tourney_tov_pct = tp.tov_pct
                     t.tourney_bench_pct = tp.bench_pct
                     t.tourney_games = tp.n_games
+                    t.tourney_data_confidence = tp.data_confidence
+                    t.tourney_comeback_confidence = tp.comeback_confidence
                     t.traj_fg_pct = tp.traj_fg_pct
                     t.traj_ast = tp.traj_ast
                     t.traj_tov = tp.traj_tov
@@ -243,6 +249,7 @@ def main():
 
                 old_p = m.win_prob_a_ensemble
                 m.win_prob_a_ensemble = result.p_final
+                m.confidence = result.confidence_post
 
                 if abs(result.total_shift) > 0.005:
                     fired_cats = sum(1 for c in result.categories if abs(c.final_shift) > 0.001)
@@ -277,7 +284,7 @@ def main():
     start = time.time()
 
     # Build ensemble prob_func: blends 1A + 1B per matchup using calibrated lambda
-    ensemble_prob_func = _build_ensemble_prob_func(xgb_model, h2h_lookup, comeback_rates)
+    ensemble_prob_func = _build_ensemble_prob_func(xgb_model, h2h_lookup)
 
     # ── Narrative Verification Layer (post-ensemble, pre-MC) ──────────
     narrative_data = {}
@@ -392,7 +399,7 @@ def main():
         pass
 
     # Save results and dashboard
-    _save_results(teams, matchups, result_ensemble, injury_profiles)
+    _save_results(teams, matchups, result_ensemble, injury_profiles, ensemble_prob_func)
 
     from src.dashboard import save_dashboard, generate_full_report
     save_dashboard(teams, matchups, result_ensemble, prob_func=ensemble_prob_func)
@@ -563,7 +570,7 @@ def _run_phase_1b(teams, matchups):
         return None
 
 
-def _build_ensemble_prob_func(xgb_model, h2h_lookup, comeback_rates=None):
+def _build_ensemble_prob_func(xgb_model, h2h_lookup):
     """Build a probability function that blends 1A + 1B per matchup.
 
     This replaces the old dual-simulation approach: instead of running
@@ -680,6 +687,8 @@ def _build_ensemble_prob_func(xgb_model, h2h_lookup, comeback_rates=None):
                     tourney_ast_rate_b=team_b.tourney_ast_rate,
                     tourney_games_a=team_a.tourney_games,
                     tourney_games_b=team_b.tourney_games,
+                    tourney_data_confidence_a=getattr(team_a, "tourney_data_confidence", 0.0),
+                    tourney_data_confidence_b=getattr(team_b, "tourney_data_confidence", 0.0),
                     form_trend_a=team_a.form_trend,
                     form_trend_b=team_b.form_trend,
                     momentum_a=team_a.momentum,
@@ -710,6 +719,8 @@ def _build_ensemble_prob_func(xgb_model, h2h_lookup, comeback_rates=None):
                     comeback_rate_b=comeback_rates.get(team_b.name, (0.0, 0))[0] if comeback_rates else 0.0,
                     comeback_games_a=comeback_rates.get(team_a.name, (0.0, 0))[1] if comeback_rates else 0,
                     comeback_games_b=comeback_rates.get(team_b.name, (0.0, 0))[1] if comeback_rates else 0,
+                    comeback_confidence_a=getattr(team_a, "tourney_comeback_confidence", 0.0),
+                    comeback_confidence_b=getattr(team_b, "tourney_comeback_confidence", 0.0),
                 )
                 result = evaluate_scenario(ctx)
                 p_final = result.p_final
@@ -855,6 +866,8 @@ def _build_scenario_context(matchup, injury_profiles, sii_results, tourney_profi
         tourney_ast_rate_b=b.tourney_ast_rate,
         tourney_games_a=a.tourney_games,
         tourney_games_b=b.tourney_games,
+        tourney_data_confidence_a=getattr(a, 'tourney_data_confidence', 0.0),
+        tourney_data_confidence_b=getattr(b, 'tourney_data_confidence', 0.0),
 
         # FORM & TRAJECTORY
         form_trend_a=a.form_trend,
@@ -893,6 +906,8 @@ def _build_scenario_context(matchup, injury_profiles, sii_results, tourney_profi
         comeback_rate_b=comeback_rates.get(b.name, (0.0, 0))[0] if comeback_rates else 0.0,
         comeback_games_a=comeback_rates.get(a.name, (0.0, 0))[1] if comeback_rates else 0,
         comeback_games_b=comeback_rates.get(b.name, (0.0, 0))[1] if comeback_rates else 0,
+        comeback_confidence_a=getattr(a, 'tourney_comeback_confidence', 0.0),
+        comeback_confidence_b=getattr(b, 'tourney_comeback_confidence', 0.0),
         sos_rank_a=getattr(a, 'sos_rank', 50),
         sos_rank_b=getattr(b, 'sos_rank', 50),
         q1_wins_a=int(getattr(a, 'q1_record', 0.5) * 10),
@@ -984,7 +999,26 @@ def _print_upset_analysis(matchups, result):
         print("  No volatile favorites detected.")
 
 
-def _save_results(teams, matchups, result, injury_profiles=None):
+def _load_region_winners_from_e8():
+    """Read Final Four participants with regions from E8 result files."""
+    import csv
+
+    live_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "live_results")
+    winners = []
+    for filename in ("e8_saturday.csv", "e8_sunday.csv"):
+        path = os.path.join(live_dir, filename)
+        if not os.path.isfile(path):
+            continue
+        with open(path, "r") as handle:
+            for row in csv.DictReader(handle):
+                winners.append({
+                    "team": row.get("winner", "").strip().replace("UConn", "Connecticut"),
+                    "region": row.get("region", "").strip(),
+                })
+    return winners
+
+
+def _save_results(teams, matchups, result, injury_profiles=None, prob_func=None):
     """Save results to CSV files."""
     import pandas as pd
 
@@ -1019,6 +1053,7 @@ def _save_results(teams, matchups, result, injury_profiles=None):
             "cinderella": t.is_cinderella,
             "form_trend": round(getattr(t, "form_trend", 0.5), 3),
             "momentum": round(t.momentum, 3),
+            "tourney_data_confidence": round(getattr(t, "tourney_data_confidence", 0.0), 3),
         }
         # Add injury penalty if available
         if injury_profiles:
@@ -1048,6 +1083,66 @@ def _save_results(teams, matchups, result, injury_profiles=None):
     pd.DataFrame(odds_data).to_csv(
         os.path.join(results_dir, "championship_odds.csv"), index=False
     )
+
+    # Current live-stage odds for remaining teams only
+    region_winners = _load_region_winners_from_e8()
+    if region_winners:
+        remaining = {row["team"] for row in region_winners}
+        live_odds = [row for row in odds_data if row["team"] in remaining]
+        live_total = sum(row["championship_pct"] for row in live_odds)
+        for row in live_odds:
+            row["current_stage_champ_pct"] = round((row["championship_pct"] / live_total) * 100, 2) if live_total > 0 else 0.0
+        pd.DataFrame(live_odds).to_csv(
+            os.path.join(results_dir, "current_stage_odds.csv"), index=False
+        )
+
+        if prob_func is not None and len(region_winners) == 4:
+            teams_by_name = {team.name: team for team in teams}
+            by_region = {row["region"]: row["team"] for row in region_winners}
+            semifinal_pairs = [
+                ("F4", by_region.get("South"), by_region.get("East")),
+                ("F4", by_region.get("Midwest"), by_region.get("West")),
+            ]
+            live_rows = []
+            semifinal_winners = []
+            for round_name, team_a_name, team_b_name in semifinal_pairs:
+                if not team_a_name or not team_b_name:
+                    continue
+                team_a = teams_by_name.get(team_a_name)
+                team_b = teams_by_name.get(team_b_name)
+                if not team_a or not team_b:
+                    continue
+                prob_a = prob_func(team_a, team_b, round_name)
+                winner = team_a.name if prob_a >= 0.5 else team_b.name
+                semifinal_winners.append((winner, max(prob_a, 1 - prob_a)))
+                live_rows.append({
+                    "round": round_name,
+                    "team_a": team_a.name,
+                    "seed_a": team_a.seed,
+                    "team_b": team_b.name,
+                    "seed_b": team_b.seed,
+                    "predicted_winner": winner,
+                    "win_prob_a": round(prob_a, 4),
+                    "confidence": round(max(prob_a, 1 - prob_a), 4),
+                })
+            if len(semifinal_winners) == 2:
+                team_a = teams_by_name[semifinal_winners[0][0]]
+                team_b = teams_by_name[semifinal_winners[1][0]]
+                prob_a = prob_func(team_a, team_b, "Championship")
+                championship_team = team_a.name if prob_a >= 0.5 else team_b.name
+                live_rows.append({
+                    "round": "Championship",
+                    "team_a": team_a.name,
+                    "seed_a": team_a.seed,
+                    "team_b": team_b.name,
+                    "seed_b": team_b.seed,
+                    "predicted_winner": championship_team,
+                    "win_prob_a": round(prob_a, 4),
+                    "confidence": round(max(prob_a, 1 - prob_a), 4),
+                })
+            pd.DataFrame(live_rows).to_csv(
+                os.path.join(os.path.dirname(results_dir), "live_results", "f4_predictions.csv"), index=False
+            )
 
     # Matchup predictions
     matchup_data = []

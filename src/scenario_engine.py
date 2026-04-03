@@ -19,7 +19,6 @@ Design principles:
   - Base-probability dampening: shifts compressed near p=0 or p=1 (4*p*(1-p), floor 0.35)
   - Trajectory decay: first-weekend data fades in later rounds (S16 0.70, F4 0.30)
   - Asymmetric data guard: one-sided trajectory capped at 0.02 (requires both teams' data for full signal)
-  - Comeback resilience: teams that win when trailing at halftime get credit in INTANGIBLES
   - Tournament-adaptive: consumes live box-score data and detects trajectories
   - Every signal is traceable: the report shows exactly WHY
 """
@@ -68,6 +67,8 @@ class ScenarioResult:
     categories: List[CategoryResult] = field(default_factory=list)
     coherence: float = 0.0
     coherence_bonus: float = 0.0
+    uncertainty: float = 0.0
+    confidence_post: float = 0.0
     narrative: str = ""
 
 
@@ -170,6 +171,8 @@ class ScenarioContext:
     tourney_ast_rate_b: float = 0.0
     tourney_games_a: int = 0
     tourney_games_b: int = 0
+    tourney_data_confidence_a: float = 0.0
+    tourney_data_confidence_b: float = 0.0
 
     # --- FORM & TRAJECTORY ---
     form_trend_a: float = 0.5
@@ -223,12 +226,12 @@ class ScenarioContext:
     first_tourney_b: bool = False
     recent_final_fours_a: int = 0
     recent_final_fours_b: int = 0
-
-    # Comeback resilience (halftime adjustment + tournament comeback data)
-    comeback_rate_a: float = 0.0   # 0.0-1.0: fraction of trailing-at-half games won
+    comeback_rate_a: float = 0.0
     comeback_rate_b: float = 0.0
-    comeback_games_a: int = 0      # how many games trailing at half (sample size)
+    comeback_games_a: int = 0
     comeback_games_b: int = 0
+    comeback_confidence_a: float = 0.0
+    comeback_confidence_b: float = 0.0
 
     # SOS / quality
     sos_rank_a: int = 50
@@ -434,33 +437,22 @@ def evaluate_matchup_style(ctx: ScenarioContext) -> CategoryResult:
     else:
         signals.append(Signal(name="three_pt_dependency", met=False, description="Neither team 3PT-heavy"))
 
-    # 3PT variance upside: high-variance 3PT teams are "live underdogs"
-    # When variance is high AND ceiling is high, the team can go nuclear
-    std_a = ctx.three_pt_std_a
-    std_b = ctx.three_pt_std_b
-    pct_a = ctx.three_pt_pct_a
-    pct_b = ctx.three_pt_pct_b
-    high_var_a = std_a > 0.08 and pct_a > 0.30
-    high_var_b = std_b > 0.08 and pct_b > 0.30
-    ceiling_a = pct_a + 1.3 * std_a if std_a > 0 else 0.0
-    ceiling_b = pct_b + 1.3 * std_b if std_b > 0 else 0.0
+    high_var_a = ctx.three_pt_std_a > 0.08 and ctx.three_pt_pct_a > 0.30
+    high_var_b = ctx.three_pt_std_b > 0.08 and ctx.three_pt_pct_b > 0.30
+    ceiling_a = ctx.three_pt_pct_a + 1.3 * ctx.three_pt_std_a
+    ceiling_b = ctx.three_pt_pct_b + 1.3 * ctx.three_pt_std_b
     is_close = 0.35 < ctx.p_base < 0.65
-
     if (high_var_a or high_var_b) and is_close:
-        var_diff = (ceiling_a - ceiling_b) if (high_var_a and high_var_b) else (
-            0.015 if high_var_a and not high_var_b else -0.015
-        )
-        var_weight = min(0.02, abs(var_diff) * 0.5) * (1.0 if var_diff > 0 else -1.0)
+        var_diff = (ceiling_a - ceiling_b) if (high_var_a and high_var_b) else (0.015 if high_var_a else -0.015)
         signals.append(Signal(
             name="three_pt_variance_upside",
             met=True,
-            weight=var_weight,
-            raw_value=ceiling_a - ceiling_b,
-            description=f"3PT ceiling: A={ceiling_a:.1%} (std={std_a:.1%}) B={ceiling_b:.1%} (std={std_b:.1%})",
+            weight=min(0.02, abs(var_diff) * 0.5) * (1.0 if var_diff > 0 else -1.0),
+            raw_value=var_diff,
+            description=f"3PT ceiling: A={ceiling_a:.1%} B={ceiling_b:.1%}",
         ))
     else:
-        signals.append(Signal(name="three_pt_variance_upside", met=False,
-                              description="No 3PT variance edge or not a close game"))
+        signals.append(Signal(name="three_pt_variance_upside", met=False, description="No 3PT variance edge or not close"))
 
     raw, mult = _compound_signals(signals, config["compound_threshold"])
     final = max(-config["max_shift"], min(config["max_shift"], raw * mult))
@@ -725,32 +717,19 @@ def evaluate_intangibles(ctx: ScenarioContext) -> CategoryResult:
     else:
         signals.append(Signal(name="upset_momentum", met=False, description="No upset momentum"))
 
-    # Comeback resilience: teams that win when trailing at halftime
-    cb_a = ctx.comeback_rate_a
-    cb_b = ctx.comeback_rate_b
-    cb_diff = cb_a - cb_b
-    cb_has_data = ctx.comeback_games_a >= 3 and ctx.comeback_games_b >= 3
+    cb_has_data = ctx.comeback_games_a >= 2 or ctx.comeback_games_b >= 2
+    cb_diff = ctx.comeback_rate_a - ctx.comeback_rate_b
     if cb_has_data and abs(cb_diff) > 0.10:
-        cb_weight = min(0.03, abs(cb_diff) * 0.08) * (1.0 if cb_diff > 0 else -1.0)
         signals.append(Signal(
-            name="comeback_resilience", met=True, weight=cb_weight,
+            name="comeback_resilience",
+            met=True,
+            weight=min(0.03, abs(cb_diff) * 0.08) * (1.0 if cb_diff > 0 else -1.0),
             raw_value=cb_diff,
-            description=f"Comeback rate: A={cb_a:.0%} ({ctx.comeback_games_a}g) B={cb_b:.0%} ({ctx.comeback_games_b}g)",
+            description=(
+                f"Comeback rate: A={ctx.comeback_rate_a:.0%} ({ctx.comeback_games_a}g) "
+                f"B={ctx.comeback_rate_b:.0%} ({ctx.comeback_games_b}g)"
+            ),
         ))
-    elif not cb_has_data and (ctx.comeback_games_a >= 2 or ctx.comeback_games_b >= 2):
-        one_sided_cb = 0.0
-        if ctx.comeback_games_a >= 2 and cb_a > 0.35:
-            one_sided_cb = min(0.015, cb_a * 0.03)
-        elif ctx.comeback_games_b >= 2 and cb_b > 0.35:
-            one_sided_cb = -min(0.015, cb_b * 0.03)
-        if abs(one_sided_cb) > 0.005:
-            signals.append(Signal(
-                name="comeback_resilience", met=True, weight=one_sided_cb,
-                raw_value=cb_diff,
-                description=f"One-sided comeback data: A={cb_a:.0%} ({ctx.comeback_games_a}g) B={cb_b:.0%} ({ctx.comeback_games_b}g)",
-            ))
-        else:
-            signals.append(Signal(name="comeback_resilience", met=False, description="Insufficient comeback data"))
     else:
         signals.append(Signal(name="comeback_resilience", met=False, description="No comeback differential"))
 
@@ -828,6 +807,22 @@ def compute_net_shift(roster_a: CategoryResult, roster_b: CategoryResult,
     return roster_shift + style.final_shift + form.final_shift + intangibles.final_shift
 
 
+def compute_uncertainty(ctx: ScenarioContext, coherence: float) -> float:
+    """Estimate uncertainty used to compress overconfident late-round edges."""
+    avg_live_conf = (ctx.tourney_data_confidence_a + ctx.tourney_data_confidence_b) / 2.0
+    avg_comeback_conf = (ctx.comeback_confidence_a + ctx.comeback_confidence_b) / 2.0
+    closeness = max(0.0, 1.0 - abs(ctx.p_base - 0.5) / 0.25)
+    three_pt_vol = min(1.0, (ctx.three_pt_std_a + ctx.three_pt_std_b) / 0.24)
+    uncertainty = (
+        0.06 * closeness +
+        0.06 * (1.0 - avg_live_conf) +
+        0.03 * (1.0 - avg_comeback_conf) +
+        0.03 * (1.0 - coherence) +
+        0.02 * three_pt_vol
+    )
+    return min(0.18, max(0.02, uncertainty))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # MASTER: evaluate_scenario
 # ─────────────────────────────────────────────────────────────────────────────
@@ -860,20 +855,9 @@ def evaluate_scenario(ctx: ScenarioContext) -> ScenarioResult:
 
     net_shift = compute_net_shift(roster_a, roster_b, style, form, intangibles)
 
-    # Cross-category interaction: injury-style compounding
-    # When a team loses an interior player AND the opponent has paint/rebounding
-    # dominance, the style edge is amplified (the opponent exploits the gap).
-    _INJURY_STYLE_AMPLIFIER = 1.3
-    interior_injury_a = (roster_a.final_shift > 0.05 and
-                         any(s.met and "star" in s.name.lower() for s in roster_a.signals))
-    interior_injury_b = (roster_b.final_shift > 0.05 and
-                         any(s.met and "star" in s.name.lower() for s in roster_b.signals))
-    opp_paint_edge = abs(style.final_shift) > 0.02
-
-    if interior_injury_a and opp_paint_edge and style.final_shift < -0.01:
-        net_shift += style.final_shift * (_INJURY_STYLE_AMPLIFIER - 1.0)
-    elif interior_injury_b and opp_paint_edge and style.final_shift > 0.01:
-        net_shift += style.final_shift * (_INJURY_STYLE_AMPLIFIER - 1.0)
+    if ((roster_a.final_shift > 0.05 and style.final_shift < -0.01) or
+            (roster_b.final_shift > 0.05 and style.final_shift > 0.01)):
+        net_shift += style.final_shift * 0.30
 
     amplified_shift = net_shift * (1.0 + coherence_bonus)
 
@@ -884,7 +868,9 @@ def evaluate_scenario(ctx: ScenarioContext) -> ScenarioResult:
 
     amplified_shift = max(-MAX_SCENARIO_SHIFT, min(MAX_SCENARIO_SHIFT, amplified_shift))
 
-    p_final = max(0.02, min(0.98, ctx.p_base + amplified_shift))
+    p_shifted = max(0.02, min(0.98, ctx.p_base + amplified_shift))
+    uncertainty = compute_uncertainty(ctx, coherence)
+    p_final = max(0.02, min(0.98, 0.5 + (p_shifted - 0.5) * (1.0 - uncertainty)))
 
     categories = [roster_a, roster_b, style, form, intangibles]
 
@@ -911,6 +897,8 @@ def evaluate_scenario(ctx: ScenarioContext) -> ScenarioResult:
         categories=categories,
         coherence=coherence,
         coherence_bonus=coherence_bonus,
+        uncertainty=uncertainty,
+        confidence_post=abs(p_final - 0.5) * 2.0,
         narrative="; ".join(narrative_parts) if narrative_parts else "No significant scenario signals",
     )
 
@@ -959,6 +947,7 @@ def scenario_report(result: ScenarioResult) -> str:
     lines.append(f"\n  CROSS-CATEGORY:")
     lines.append(f"    Coherence: {result.coherence:.0%} -> bonus: {result.coherence_bonus:+.0%}")
     lines.append(f"    Net shift: {result.total_shift:+.3f} (before: {result.p_base:.1%}, after: {result.p_final:.1%})")
+    lines.append(f"    Uncertainty: {result.uncertainty:.1%} -> post confidence: {result.confidence_post:.1%}")
 
     lines.append(f"\n  NARRATIVE: {result.narrative}")
     lines.append(f"\n  p_final: {result.p_final:.1%} ({a}) vs {1-result.p_final:.1%} ({b})")

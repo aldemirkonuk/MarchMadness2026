@@ -1,196 +1,153 @@
-# Final Four Deep Analysis -- Model Audit, Predictions, and Improvement Roadmap
+# Final Four Analysis
 
-**Date**: April 3, 2026 (eve of the Final Four)
-**Author**: mArchMadness Prediction System
-**Scope**: Full 60-game tournament audit, architectural review, Final Four + Championship predictions
+## What Distinguishes This Model
 
----
+### 1. Evidence-first scenario reasoning
 
-## 1. Tournament Accuracy Audit (R64 through E8)
+The repo does not stop at a single blended probability. It carries a four-category scenario engine that explains *why* a matchup moves:
 
-### 1.1 Round-by-Round Accuracy
+- `ROSTER_STATE`
+- `MATCHUP_STYLE`
+- `FORM_TRAJECTORY`
+- `INTANGIBLES`
 
-| Round | Correct | Total | Accuracy | Key Misses |
-|-------|---------|-------|----------|------------|
-| R64   | 27      | 32    | 84.4%    | High Point, Iowa, VCU, Texas A&M, Saint Louis |
-| R32   | 12      | 16    | 75.0%    | Iowa/Florida (93.1% conf!), Texas/Gonzaga, Alabama/TTU, Tennessee/Virginia |
-| S16   | 5       | 8     | 62.5%    | UConn/MSU, Iowa/Nebraska, Tennessee/Iowa State |
-| E8    | 3       | 4     | 75.0%    | UConn buzzer-beater over Duke (predicted 90% Duke) |
-| **Total** | **47** | **60** | **78.3%** | |
+That makes late-tournament predictions auditable instead of opaque.
 
-### 1.2 Accuracy by Confidence Tier
+### 2. Surgical self-correction instead of wholesale reweighting
 
-| Tier | Definition | Correct | Total | Accuracy |
-|------|-----------|---------|-------|----------|
-| LOCK | > 80% confidence | 35 | 39 | 89.7% |
-| LEAN | 60-80% confidence | 8 | 12 | 66.7% |
-| TOSS-UP | < 60% confidence | 4 | 9 | 44.4% |
+The strongest pattern in this codebase is not just that it predicts, but that it diagnoses its own failure modes. The Texas inflation work already proved this: rather than replacing the base model, the system added asymmetric-data guards, decay, dampening, and coherence limits to protect the root model.
 
-### 1.3 Degradation Pattern
+### 3. Live tournament adaptation
 
-The model degrades as rounds progress:
+This model has a better live-tournament spine than most bracket models:
 
-- **R64 (84.4%)**: Powered by the fully-backtested ROOT model (73.7% on historical data). The 10-point uplift vs historical baseline comes from the injury model and narrative layer correctly identifying fragile teams (BYU without Saunders, Duke without Foster).
-- **R32 (75.0%)**: The Iowa-over-Florida miss at 93.1% confidence is the worst single-game calibration failure. Florida was our #4 championship pick (14.2%).
-- **S16 (62.5%)**: Three misses in eight games. UConn over Michigan State and Tennessee over Iowa State were both detectable signals we had the data for but failed to weight properly.
-- **E8 (75.0%)**: The Duke-UConn miss at 90% confidence is our most impactful failure. We correctly picked the other three E8 winners.
+- injury impact is quantified, not binary
+- tournament momentum is separated from season momentum
+- box-score trajectories are round-aware
+- late-round narrative signals can be layered after the ensemble
 
-### 1.4 Signal vs Noise Classification
+That combination is unusual and worth preserving.
 
-Of our 13 total misses:
-- **NOISE (margin <= 5 pts)**: 5 games -- decided by single possessions where randomness dominates
-- **SIGNAL (margin > 5 pts)**: 8 games -- systematic misses where our model had the data to do better
+## What We Missed
 
-If we exclude the 5 pure-noise losses, our **adjusted accuracy is 52/60 = 86.7%**.
+### 1. Bad live rows were still allowed to influence the model
 
-### 1.5 Biggest Failures Ranked by Impact
+The biggest structural gap was not a basketball idea but a data-integrity issue. `tournament_box_scores.csv` contained at least one hard mismatch:
 
-1. **Florida (1-seed) eliminated R32 by Iowa (9-seed)** -- We gave Florida 93.1% to advance. Championship odds were 14.2%.
-2. **Duke (1-seed) eliminated E8 by UConn (2-seed)** -- We gave Duke 90.0%. Championship odds were 29.7%.
-3. **UNC (6-seed) eliminated R64 by VCU (11-seed)** -- Blew a 19-point second-half lead. 78.1% confidence was too high.
+- `R32 UCLA 73, Connecticut 57, winner=Connecticut`
 
----
+That kind of row can silently poison tournament momentum and profile logic if it is trusted as authoritative.
 
-## 2. Three Things We Did (Distinguishes Us From The Rest)
+### 2. Partial box scores were acting like weak or missing truth
 
-### 2.1 Evidence-Based Scenario Engine with Coherence Scoring
+Many tournament rows had only partial stat coverage. Before this pass, the loader mostly treated games as usable or unusable based on a narrow subset of fields, which meant the live layer could become biased toward the few games with richer box-score fill.
 
-Most bracket prediction models are statistical ensembles that output a single probability. Ours is architecturally different: a 4-category evidence-reasoning engine that explains **why** one team beats another, not just **how likely** it is.
+### 3. Confidence was still too blunt in noisy games
 
-**Architecture**:
-- Layer 1: Gather evidence per category (ROSTER_STATE, MATCHUP_STYLE, FORM_TRAJECTORY, INTANGIBLES)
-- Layer 2: Within-category compounding (related signals amplify each other)
-- Layer 3: Cross-category interaction via coherence scoring
-- Layer 4: Base-probability dampening (4p(1-p), floor 0.35) prevents absurd shifts near extremes
+The model had good raw directional logic, but it still needed a cleaner way to say:
 
-**Unique innovations**:
-- Asymmetric trajectory data guard: requires both teams to have >= 2 tournament games before applying full trajectory weight. One-sided data capped at 0.02.
-- Trajectory decay by round: first-weekend data fades as the tournament progresses (S16: 0.70, E8: 0.45, F4: 0.30).
-- Recency-tournament weight shifting: later rounds shift influence from season data toward in-tournament performance (E8: 40% tournament, F4: 50%).
+- this edge is real, but thinly supported
+- this game is close enough that volatility matters
+- this late-tournament signal should compress confidence, not just flip the pick
 
-### 2.2 Self-Correcting Calibration Loop
+## What We Implemented In This Pass
 
-After the initial simulation showed Texas (11-seed) ranked #8 in championship odds above Purdue, Houston, Illinois, and Michigan State, we diagnosed the root cause: the scenario engine was applying a +17pp shift per Monte Carlo round due to 5 compounding errors.
+### 1. Live data validation and in-memory normalization
 
-**The 5-fix surgical calibration**:
-1. Asymmetric data bias: one-sided trajectory capped at 0.02 instead of full weight
-2. Trajectory decay: introduced TRAJECTORY_DECAY dictionary by round
-3. Weight reduction: trajectory base from 0.05 to 0.03, multiplier from 1.3 to 1.15
-4. Coherence cap: bonus reduced from 25% max to 15% max
-5. Base-probability dampening: 4p(1-p) formula introduced
+New module: `src/live_data_validation.py`
 
-Post-fix: Texas dropped from #8 (5.36% championship) to #18 (0.18%).
+It now:
 
-### 2.3 Injury Model with BPR-Based Impact Quantification
+- canonicalizes team names across live files
+- compares the wide box-score file to the slim round-result files
+- flags winner/score contradictions
+- normalizes swapped A/B orientations in memory before downstream use
 
-Not binary "in/out" but quantifies player impact via Basketball Performance Rating share, category dominance scoring, multi-category amplifiers, star isolation index (SII), crippled roster detection, and round-specific availability probabilities.
+### 2. Coverage-aware tournament profiles
 
-**Validated by outcomes**:
-- BYU's Saunders ACL: team went 2-4 after injury, model detected collapse
-- Iowa State's J. Jefferson: OUT for tournament, correctly flagged 16.4 PPG / 7.4 REB loss
-- Duke's Foster: 7-man rotation R64 (Siena led at half); returned S16; model correctly adjusted availability from 0.00 to 0.85
+`src/tournament_loader.py` now tracks:
 
----
+- per-stat coverage
+- `data_confidence`
+- `comeback_confidence`
 
-## 3. Three Things We Missed
+This means incomplete games can still contribute signal, but downstream code can now distinguish strong live evidence from thin live evidence.
 
-### 3.1 UConn's Comeback / Clutch DNA
+### 3. Explicit uncertainty in the scenario engine
 
-Duke 90% to beat UConn in E8. Duke led 44-29 at halftime. Mullins hit a 35-foot buzzer-beater with 0.4s left. UConn won 73-72.
+`src/scenario_engine.py` now exposes:
 
-Our model had **no comeback resilience signal**. UConn's 17-1 record in last 18 NCAA tournament games across 4 years is an unmodeled systematic advantage. Game-log CSVs contain halftime scores we could have used to compute comeback rates.
+- `uncertainty`
+- `confidence_post`
 
-### 3.2 Iowa's 3PT Variance / Hot-Hand Upside
+Uncertainty increases when:
 
-Missed Iowa twice (R64 vs Clemson at 70.7%, R32 vs Florida at 93.1%). Our three_pt_dependency signal **penalizes** 3PT-heavy teams for variance but never captures the **upside**. Iowa's mediocre season 3PT% with high variance meant they could shoot 43%+ on any given night. The three_pt_std fields are already plumbed into ScenarioContext but underutilized.
+- the base game is close
+- live tournament coverage is weak
+- halftime comeback evidence is thin
+- coherence is low
+- 3PT volatility is high
 
-### 3.3 Injury-Physicality Interaction Gap
+Instead of only shifting probabilities, the engine now compresses overconfident edges toward `50/50` when support is thin.
 
-Predicted Iowa State 65.8% over Tennessee. Tennessee won 76-62. We had J. Jefferson as OUT and detected Tennessee's physicality independently, but the **interaction** was only implicit through coherence. Losing an interior player against a paint-dominant opponent should compound multiplicatively.
+### 4. Bracket-state-aware Final Four outputs
 
----
+`src/main.py` now writes:
 
-## 4. Three Things We Can Implement
+- `data/results/current_stage_odds.csv`
+- `data/live_results/f4_predictions.csv`
 
-### 4.1 Comeback Resilience Score (INTANGIBLES)
+These artifacts focus on the teams still alive instead of forcing the user to interpret stale full-field championship tables.
 
-From game-log CSVs, compute per-team: % of games won when trailing at halftime, average deficit overcome, maximum comeback. Weight 0.02-0.03 when meaningful difference exists.
+### 5. Audit upgrades
 
-### 4.2 3PT Variance Upside Floor (MATCHUP_STYLE)
+`run_accuracy_audit.py` now:
 
-Use existing three_pt_std fields. High variance + high ceiling (season-best > 42%) = small positive weight for the underdog in close matchups. Weight 0.01-0.02.
+- prints live-data validation issues up front
+- reports reliability bins, not just hit rate
 
-### 4.3 Injury-Style Cross-Category Compounding
+Current reliability snapshot:
 
-If ROSTER_STATE detects interior injury AND MATCHUP_STYLE detects opponent paint dominance, amplify style shift by 1.3x. Targeted interaction, not just implicit coherence.
+- `50-60%`: realized `50.0%`, gap `-5.1%`
+- `60-70%`: realized `60.0%`, gap `-6.2%`
+- `70-80%`: realized `76.5%`, gap `+1.4%`
+- `80-90%`: realized `84.6%`, gap `+1.6%`
+- `90-100%`: realized `89.5%`, gap `-6.4%`
 
----
+That last bin confirms the main remaining calibration weakness: the stack is still a little too aggressive at the top end.
 
-## 5. Final Four Predictions
+## Final Four Predictions
 
-### Game 1: (3) Illinois vs (2) UConn -- Saturday April 4, 6:09 PM ET
+From `data/live_results/f4_predictions.csv`:
 
-**Prediction: Illinois 68, UConn 63 | Illinois win probability: 60%**
+- `Illinois` over `Connecticut`: `54.96%`
+- `Michigan` over `Arizona`: `57.97%`
+- `Michigan` over `Illinois` in the title game: `77.05%`
 
-| Factor | Illinois | UConn |
-|--------|----------|-------|
-| AdjOE rank | #1 (all-time record) | 138th nationally |
-| FT% | 78% (best in F4) | 71.6% (222nd nationally) |
-| TOV% | Lowest in nation | Average |
-| ORB% | 3rd nationally | Average |
-| Star player | Wagler: 25pts E8 | Reed Jr: 21.8 PPG / 13.5 RPG in tourney |
-| Tourney pedigree | First F4 since 2005 | 17-1 last 18 tournament games |
-| Key injury | Rodgers (G) questionable | Demary Jr. Grade 2 ankle sprain |
+## Current-Stage Title Odds
 
-**Why Illinois wins**: Both teams play slow (296th and 319th tempo). In a possession-by-possession grind, Illinois's offensive efficiency advantage is decisive. Illinois's 43 rebounds vs Iowa in the E8 proves they can match UConn's physicality. The free throw line clinches it: Illinois's 78% vs UConn's 71.6% creates a 4-6 point swing in a low-scoring game. Reed Jr.'s 56.1% FT makes him vulnerable to intentional fouling down the stretch.
+From `data/results/current_stage_odds.csv`:
 
-**Risk factor**: UConn's comeback resilience. If they trail by 8-10 at half, Dan Hurley's teams thrive in deficit situations.
+- `Michigan`: `53.48%`
+- `Arizona`: `34.83%`
+- `Illinois`: `8.11%`
+- `Connecticut`: `3.59%`
 
-### Game 2: (1) Michigan vs (1) Arizona -- Saturday April 4, 8:49 PM ET
+## Best Next Improvements
 
-**Prediction: Michigan 82, Arizona 78 | Michigan win probability: 55%**
+### 1. Validate the new signals against held-out historical late rounds
 
-| Factor | Michigan | Arizona |
-|--------|----------|---------|
-| Record | 35-3 | 36-2 |
-| Defense rank | #1 nationally | Top 20 |
-| 3PT in tourney | 45 made (47.8% avg) | 23 made (~33%) |
-| Paint scoring | Strong | Elite (60 in S16) |
-| FTA margin | Normal | +72 FTA through 4 games |
-| Star player | Lendeborg: two-way POTY candidate | Peat: lottery pick, 20.5 PPG last 2 |
-| Bench depth | 33 bench pts S16, 6 top-50 recruits | Good but not Michigan-level |
+The added comeback and uncertainty logic is directionally sound, but it still needs a more formal historical check for overfitting in small samples.
 
-**Why Michigan wins**: The key asymmetry is perimeter shooting. Arizona's paint-first offense meets Michigan's Mara (7'3", 100 blocks). When forced to the perimeter, Arizona's ~33% tournament 3PT rate is insufficient. Michigan's ball movement (22 AST in S16) prevents Arizona from keying on a single scorer.
+### 2. Add feature-level confidence directly into scenario signal weights
 
-**Risk factor**: Arizona's FT dominance. If Michigan fouls and Arizona shoots 30+ FTs at 77%, that closes any gap. KenPom has Michigan at only 51%.
+Right now confidence compresses the final edge after the scenario calculation. A stronger next step would be letting low-coverage tournament stats reduce signal weight *inside* the affected category.
 
-### Championship: Michigan vs Illinois -- Monday April 6, 8:50 PM ET
+### 3. Split pre-tournament odds from live conditional odds everywhere
 
-**Prediction: Michigan 72, Illinois 66 | Michigan win probability: 58%**
+The repo should keep both views, but label them clearly:
 
-The #1 offense all-time meets the #1 defense nationally.
+- pre-tournament whole-field title odds
+- live conditional title odds for teams still alive
 
-- Michigan's rim protection (Mara 100 blocks) changes the paint scoring calculus
-- Lendeborg's two-way impact: scores 20+ AND defends Wagler on switches
-- Michigan's bench depth (6 former top-50 recruits) sustains intensity over 40 minutes
-- The 3PT advantage: Michigan's perimeter shooting creates spacing Illinois's rebounding cannot overcome
-- In a half-court execution game, Michigan's defensive efficiency is the nation's best
-
-**The wild card**: Wagler. If he gets 28+ on elite efficiency, Illinois wins. He is the most talented offensive player remaining.
-
-**Final bracket: Michigan wins the 2026 NCAA National Championship under Dusty May.**
-
----
-
-## 6. Pre-Tournament Odds vs Actual Final Four
-
-| Team | Pre-Tourney Champ Odds | Pre-Tourney F4 Odds | Actual |
-|------|----------------------|--------------------|-|
-| Duke | 29.65% | 59.89% | Lost E8 |
-| Michigan | 21.53% | 58.88% | **FINAL FOUR** |
-| Arizona | 15.81% | 48.24% | **FINAL FOUR** |
-| Florida | 14.21% | 54.17% | Lost R32 |
-| Illinois | 2.05% | 19.70% | **FINAL FOUR** |
-| Connecticut | 0.57% | 7.38% | **FINAL FOUR** |
-
-Michigan and Arizona were correctly top-4 favorites. Illinois (2.05%) and UConn (0.57%) were significantly undervalued, aligning with the comeback resilience and tournament pedigree blind spots.
+That will make downstream interpretation much cleaner.

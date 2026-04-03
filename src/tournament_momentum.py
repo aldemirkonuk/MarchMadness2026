@@ -9,11 +9,12 @@ Factors (each bounded independently, then summed):
 Returns a float in [-0.10, +0.10] suitable for the scenario engine.
 """
 
-import csv
 import os
 import math
-from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional
+from dataclasses import dataclass
+from typing import Dict, List
+
+from src.live_data_validation import load_validated_tournament_rows
 
 ROUND_ORDER = {"FF": 0, "R64": 1, "R32": 2, "S16": 3, "E8": 4, "F4": 5, "Championship": 6}
 
@@ -48,46 +49,45 @@ def _load_results(base_dir: str = None) -> Dict[str, List[TourneyGameResult]]:
     if base_dir is None:
         base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 
-    box_path = os.path.join(base_dir, "data", "live_results", "tournament_box_scores.csv")
-    if not os.path.isfile(box_path):
+    rows, _issues = load_validated_tournament_rows(base_dir)
+    if not rows:
         return {}
 
     team_results: Dict[str, List[TourneyGameResult]] = {}
 
-    with open(box_path, "r") as f:
-        for row in csv.DictReader(f):
-            rnd = row.get("round", "").strip()
-            if rnd not in ROUND_ORDER:
-                continue
+    for row in rows:
+        rnd = row.get("round", "").strip()
+        if rnd not in ROUND_ORDER:
+            continue
 
-            team_a = row.get("team_a", "").strip()
-            team_b = row.get("team_b", "").strip()
-            score_a = int(row.get("score_a", 0) or 0)
-            score_b = int(row.get("score_b", 0) or 0)
-            seed_a = int(row.get("seed_a", 0) or 0)
-            seed_b = int(row.get("seed_b", 0) or 0)
-            winner = row.get("winner", "").strip()
+        team_a = row.get("team_a", "").strip()
+        team_b = row.get("team_b", "").strip()
+        score_a = int(row.get("score_a", 0) or 0)
+        score_b = int(row.get("score_b", 0) or 0)
+        seed_a = int(row.get("seed_a", 0) or 0)
+        seed_b = int(row.get("seed_b", 0) or 0)
+        winner = row.get("winner", "").strip()
 
-            if score_a == 0 and score_b == 0:
-                continue
+        if score_a == 0 and score_b == 0:
+            continue
 
-            if team_a:
-                g = TourneyGameResult(
-                    round=rnd, team=team_a, opponent=team_b,
-                    team_seed=seed_a, opp_seed=seed_b,
-                    team_score=score_a, opp_score=score_b,
-                    won=(winner == team_a),
-                )
-                team_results.setdefault(team_a, []).append(g)
+        if team_a:
+            g = TourneyGameResult(
+                round=rnd, team=team_a, opponent=team_b,
+                team_seed=seed_a, opp_seed=seed_b,
+                team_score=score_a, opp_score=score_b,
+                won=(winner == team_a),
+            )
+            team_results.setdefault(team_a, []).append(g)
 
-            if team_b:
-                g = TourneyGameResult(
-                    round=rnd, team=team_b, opponent=team_a,
-                    team_seed=seed_b, opp_seed=seed_a,
-                    team_score=score_b, opp_score=score_a,
-                    won=(winner == team_b),
-                )
-                team_results.setdefault(team_b, []).append(g)
+        if team_b:
+            g = TourneyGameResult(
+                round=rnd, team=team_b, opponent=team_a,
+                team_seed=seed_b, opp_seed=seed_a,
+                team_score=score_b, opp_score=score_a,
+                won=(winner == team_b),
+            )
+            team_results.setdefault(team_b, []).append(g)
 
     for games in team_results.values():
         games.sort(key=lambda g: ROUND_ORDER.get(g.round, 99))
