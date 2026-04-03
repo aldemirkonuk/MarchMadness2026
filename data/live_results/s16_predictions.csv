@@ -1,0 +1,9 @@
+region,team_a,seed_a,team_b,seed_b,root_prob_a,branch_prob_a,survival_prob_a,final_prob_a,pick,confidence,form_pattern_a,form_severity_a,form_em_div_a,form_pattern_b,form_severity_b,form_em_div_b
+East,Duke,1,St. John's,5,0.7906,0.7440,0.8057,0.7795,Duke,0.5589,STABLE,0.00,+4.4,STABLE,0.00,-2.6
+East,Connecticut,2,Michigan State,3,0.3365,0.3482,0.3450,0.3241,Michigan State,0.3518,COLLAPSING,0.79,-11.6,INFLATION,0.79,-15.1
+South,Iowa,9,Nebraska,4,0.2562,0.2281,0.2314,0.2527,Nebraska,0.4947,PAPER_TIGER,0.92,-22.0,COLLAPSING,0.86,-12.8
+South,Houston,2,Illinois,3,0.4583,0.4599,0.4632,0.4963,Illinois,0.0075,INFLATION,0.80,-15.4,COLLAPSING,0.79,-9.6
+West,Arizona,1,Arkansas,4,0.7763,0.8158,0.8575,0.8307,Arizona,0.6615,INFLATION,0.72,-11.1,INFLATION,0.61,-8.1
+West,Purdue,2,Texas,11,0.8018,0.7565,0.8182,0.8622,Purdue,0.7244,PAPER_TIGER,0.81,-12.9,COLLAPSING,0.92,-11.2
+Midwest,Michigan,1,Alabama,4,0.8484,0.8953,0.9370,0.8729,Michigan,0.7458,COLLAPSING,0.90,-17.7,STABLE,0.00,+1.2
+Midwest,Iowa State,2,Tennessee,6,0.5882,0.5867,0.6284,0.6576,Iowa State,0.3151,INFLATION,0.81,-17.0,INFLATION,0.76,-10.1

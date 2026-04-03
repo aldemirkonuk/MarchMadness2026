@@ -1,0 +1,17 @@
+region,seed_a,team_a,score_a,seed_b,team_b,score_b,winner,upset
+East,5,St. John's,79,12,Northern Iowa,53,St. John's,No
+East,4,Kansas,68,13,Cal Baptist,60,Kansas,No
+East,7,UCLA,75,10,UCF,71,UCLA,No
+East,2,Connecticut,82,15,Furman,71,Connecticut,No
+West,1,Arizona,92,16,LIU Brooklyn,58,Arizona,No
+West,9,Utah State,86,8,Villanova,76,Utah State,YES
+West,7,Miami FL,80,10,Missouri,66,Miami FL,No
+West,2,Purdue,104,15,Queens,71,Purdue,No
+South,1,Florida,114,16,Prairie View A&M,55,Florida,No
+South,9,Iowa,67,8,Clemson,61,Iowa,No
+Midwest,5,Texas Tech,91,12,Akron,71,Texas Tech,No
+Midwest,4,Alabama,87,13,Hofstra,69,Alabama,No
+Midwest,6,Tennessee,78,11,Miami OH,56,Tennessee,No
+Midwest,3,Virginia,82,14,Wright State,73,Virginia,No
+Midwest,7,Kentucky,89,10,Santa Clara,84,Kentucky,No
+Midwest,2,Iowa State,108,15,Tennessee State,74,Iowa State,No

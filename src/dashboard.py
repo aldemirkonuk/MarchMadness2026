@@ -9,7 +9,7 @@ import numpy as np
 from typing import List, Dict, Callable, Optional
 
 from src.models import Team, Matchup, SimulationResult
-from src.weights import CORE_WEIGHTS
+from src.weights import CORE_WEIGHTS, ACTIVE_WEIGHTS
 
 
 BRACKET_SEEDS = [
@@ -166,7 +166,7 @@ def generate_full_report(teams: List[Team],
     # Header
     lines.append("=" * 72)
     lines.append("  NCAA 2026 MARCH MADNESS CHAMPION PREDICTOR -- FULL DASHBOARD")
-    lines.append(f"  Simulations: {result.n_simulations:,} | Parameters: {len(CORE_WEIGHTS)}")
+    lines.append(f"  Simulations: {result.n_simulations:,} | Parameters: {len(ACTIVE_WEIGHTS)}")
     lines.append("=" * 72)
 
     # Championship Odds Table
@@ -250,7 +250,7 @@ def generate_full_report(teams: List[Team],
     lines.append("\n" + "=" * 72)
     lines.append("  WEIGHT CONFIGURATION")
     lines.append("=" * 72)
-    sorted_weights = sorted(CORE_WEIGHTS.items(), key=lambda x: x[1], reverse=True)
+    sorted_weights = sorted(ACTIVE_WEIGHTS.items(), key=lambda x: x[1], reverse=True)
     for param, weight in sorted_weights:
         bar = "█" * int(weight * 200)
         lines.append(f"  {param:<25s} {weight:>5.1%} {bar}")

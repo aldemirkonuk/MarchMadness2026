@@ -1,0 +1,17 @@
+region,seed_a,team_a,seed_b,team_b,root_prob_a,final_prob_a,branches_fired,pick,notes
+East,1,Duke,9,TCU,0.780,0.737,3,Duke,TCU physicality + momentum
+East,6,Louisville,3,Michigan State,0.380,0.366,1,Michigan State,MSU depth advantage
+East,5,St. John's,4,Kansas,0.440,0.440,1,Kansas,3PT variance for SJU
+East,7,UCLA,2,Connecticut,0.320,0.278,3,Connecticut,UConn lockdown + coach DNA + depth
+South,5,Vanderbilt,4,Nebraska,0.450,0.433,2,Nebraska,Nebraska rebound mismatch
+South,11,VCU,3,Illinois,0.250,0.242,2,Illinois,Boswell lockdown > VCU momentum
+South,10,Texas A&M,2,Houston,0.280,0.267,1,Houston,Houston lockdown defense
+South,1,Florida,9,Iowa,0.850,0.882,1,Florida,Florida depth advantage
+West,12,High Point,4,Arkansas,0.220,0.207,5,Arkansas,5 branches - most active game
+West,11,Texas,3,Gonzaga,0.320,0.332,1,Gonzaga,Big 12 physicality helps Texas
+West,1,Arizona,9,Utah State,0.820,0.820,0,Arizona,Clean - no branches
+West,7,Miami FL,2,Purdue,0.300,0.277,2,Purdue,Coach DNA + depth
+Midwest,1,Michigan,9,Saint Louis,0.800,0.770,1,Michigan,SLU depth advantage
+Midwest,5,Texas Tech,4,Alabama,0.440,0.457,2,Alabama,TT lockdown + 3PT variance
+Midwest,6,Tennessee,3,Virginia,0.420,0.400,1,Virginia,Virginia lockdown defense
+Midwest,7,Kentucky,2,Iowa State,0.320,0.331,1,Iowa State,UK momentum from OT buzzer beater

@@ -1,0 +1,4 @@
+team,opponent,team_rank,opp_rank,opp_off_rank,opp_def_rank,date,venue,result,t_score_t,t_score_o,score_t,score_o,t_rating_t,t_rating_o,rating_t,rating_o,t_poss_t,t_poss_o,poss_t,poss_o,color_rating_t,color_rating_o
+Texas,NC State,34,39,27,80,2026-03-17,neutral,W,68,66,64.2,62.3,106.25,103.13,104.62,101.54,64,64,61.5,61.5,#FFB252,#BBD5EB
+Texas,BYU,34,40,13,46,2026-03-19,neutral,W,79,71,74.8,67.2,119.70,107.58,118.90,106.60,66,66,62.5,62.5,#FFB252,#D8E6F3
+Texas,Gonzaga,34,10,32,10,2026-03-21,neutral,W,74,68,70.0,64.3,112.12,103.03,111.40,102.80,66,66,61.8,61.8,#FFB252,#FFD7A5

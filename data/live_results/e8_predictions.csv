@@ -1,0 +1,5 @@
+region,team_a,seed_a,team_b,seed_b,composite_1a_prob_a,ensemble_prob_a,scenario_prob_a,pick,coherence,scenario_shift
+East,Duke,1,Connecticut,2,0.9049,0.8485,0.9001,Duke,0.6000,0.0516
+Midwest,Michigan,1,Tennessee,6,0.8970,0.8584,0.8191,Michigan,0.6667,-0.0394
+South,Illinois,3,Iowa,9,0.9308,0.8838,0.9235,Illinois,0.7500,0.0397
+West,Arizona,1,Purdue,2,0.7459,0.7231,0.7428,Arizona,0.6000,0.0197

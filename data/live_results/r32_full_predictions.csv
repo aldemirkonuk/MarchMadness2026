@@ -1,0 +1,17 @@
+region,seed_a,team_a,seed_b,team_b,root_prob_a,final_prob_a,shift,branches_fired,pick,confidence
+East,1,Duke,9,TCU,0.846,0.735,-0.111,8,Duke,LOCK
+East,6,Louisville,3,Michigan State,0.271,0.272,0.002,10,Michigan State,LOCK
+East,5,St. John's,4,Kansas,0.75,0.76,0.009,6,St. John's,LOCK
+East,7,UCLA,2,Connecticut,0.268,0.273,0.006,9,Connecticut,LOCK
+South,5,Vanderbilt,4,Nebraska,0.445,0.419,-0.026,7,Nebraska,TOSS-UP
+South,11,VCU,3,Illinois,0.192,0.208,0.016,8,Illinois,LOCK
+South,10,Texas A&M,2,Houston,0.246,0.265,0.02,6,Houston,LOCK
+South,1,Florida,9,Iowa,0.841,0.931,0.09,9,Florida,LOCK
+West,12,High Point,4,Arkansas,0.184,0.197,0.013,8,Arkansas,LOCK
+West,11,Texas,3,Gonzaga,0.177,0.19,0.012,4,Gonzaga,LOCK
+West,1,Arizona,9,Utah State,0.832,0.785,-0.047,6,Arizona,LOCK
+West,7,Miami FL,2,Purdue,0.341,0.355,0.014,6,Purdue,LEAN
+Midwest,1,Michigan,9,Saint Louis,0.834,0.823,-0.011,6,Michigan,LOCK
+Midwest,5,Texas Tech,4,Alabama,0.597,0.59,-0.007,8,Texas Tech,TOSS-UP
+Midwest,6,Tennessee,3,Virginia,0.42,0.434,0.014,8,Virginia,TOSS-UP
+Midwest,7,Kentucky,2,Iowa State,0.237,0.241,0.004,8,Iowa State,LOCK

@@ -1,33 +1,33 @@
 region,team_a,seed_a,team_b,seed_b,prob_a_1a,prob_a_1b,prob_a_ensemble,confidence,predicted_winner,injury_penalty_a,injury_penalty_b,injury_shift,injury_flag
-East,Duke,1,Siena,16,0.997,0.994,0.996,0.997,Duke,0.108,0.0,0.002,False
-East,Ohio State,8,TCU,9,0.444,0.375,0.409,0.931,TCU,0.033,0.0,0.001,False
-East,St. John's,5,Northern Iowa,12,0.962,0.803,0.908,0.841,St. John's,0.0,0.0,0.0,False
-East,Kansas,4,Cal Baptist,13,0.875,0.898,0.886,0.977,Kansas,0.108,0.0,0.002,False
-East,Louisville,6,South Florida,11,0.756,0.839,0.798,0.917,Louisville,0.12,0.0,0.002,False
-East,Michigan State,3,North Dakota State,14,0.992,0.858,0.945,0.867,Michigan State,0.0,0.0,0.0,False
-East,UCLA,7,UCF,10,0.632,0.647,0.639,0.985,UCLA,0.039,0.039,0.0,False
-East,Connecticut,2,Furman,15,0.992,0.914,0.962,0.921,Connecticut,0.113,0.0,0.002,False
-West,Arizona,1,LIU Brooklyn,16,0.996,0.983,0.991,0.987,Arizona,0.0,0.0,0.0,False
-West,Villanova,8,Utah State,9,0.316,0.414,0.353,0.901,Utah State,0.049,0.0,0.001,False
-West,Wisconsin,5,High Point,12,0.864,0.852,0.859,0.987,Wisconsin,0.078,0.0,0.002,False
-West,Arkansas,4,Hawaii,13,0.971,0.917,0.949,0.946,Arkansas,0.021,0.0,0.0,False
-West,BYU,6,Texas,11,0.704,0.796,0.752,0.908,BYU,0.108,0.005,0.002,False
-West,Gonzaga,3,Kennesaw State,14,0.993,0.917,0.964,0.924,Gonzaga,0.057,0.0,0.001,False
-West,Miami FL,7,Missouri,10,0.796,0.692,0.757,0.896,Miami FL,0.0,0.039,0.001,False
+East,Duke,1,Siena,16,0.997,0.994,0.98,0.997,Duke,0.108,0.0,0.002,False
+East,Ohio State,8,TCU,9,0.455,0.375,0.353,0.92,TCU,0.033,0.0,0.001,False
+East,St. John's,5,Northern Iowa,12,0.962,0.803,0.947,0.841,St. John's,0.0,0.0,0.0,False
+East,Kansas,4,Cal Baptist,13,0.889,0.898,0.871,0.992,Kansas,0.108,0.0,0.002,False
+East,Louisville,6,South Florida,11,0.785,0.839,0.81,0.947,Louisville,0.12,0.0,0.002,False
+East,Michigan State,3,North Dakota State,14,0.992,0.858,0.973,0.867,Michigan State,0.0,0.0,0.0,False
+East,UCLA,7,UCF,10,0.623,0.647,0.545,0.976,UCLA,0.039,0.039,0.0,False
+East,Connecticut,2,Furman,15,0.993,0.914,0.98,0.921,Connecticut,0.113,0.0,0.002,False
+West,Arizona,1,LIU Brooklyn,16,0.996,0.983,0.98,0.987,Arizona,0.0,0.0,0.0,False
+West,Villanova,8,Utah State,9,0.322,0.414,0.259,0.907,Utah State,0.049,0.0,0.001,False
+West,Wisconsin,5,High Point,12,0.88,0.852,0.826,0.972,Wisconsin,0.078,0.0,0.002,False
+West,Arkansas,4,Hawaii,13,0.972,0.917,0.972,0.945,Arkansas,0.021,0.0,0.0,False
+West,BYU,6,Texas,11,0.292,0.744,0.317,0.549,Texas,0.108,0.005,0.002,False
+West,Gonzaga,3,Kennesaw State,14,0.993,0.917,0.951,0.924,Gonzaga,0.08,0.0,0.002,False
+West,Miami FL,7,Missouri,10,0.776,0.692,0.768,0.916,Miami FL,0.0,0.039,0.001,False
 West,Purdue,2,Queens,15,0.991,0.966,0.98,0.975,Purdue,0.0,0.0,0.0,False
-South,Florida,1,Prairie View A&M,16,0.999,0.992,0.996,0.994,Florida,0.0,0.0,0.0,False
-South,Clemson,8,Iowa,9,0.587,0.537,0.567,0.95,Clemson,0.065,0.0,0.001,False
-South,Vanderbilt,5,McNeese State,12,0.867,0.639,0.797,0.772,Vanderbilt,0.0,0.0,0.0,False
-South,Nebraska,4,Troy,13,0.98,0.817,0.925,0.838,Nebraska,0.036,0.0,0.001,False
-South,North Carolina,6,VCU,11,0.769,0.803,0.785,0.966,North Carolina,0.187,0.0,0.004,False
-South,Illinois,3,Penn,14,0.989,0.955,0.975,0.966,Illinois,0.0,0.094,0.002,False
-South,Saint Mary's,7,Texas A&M,10,0.826,0.702,0.782,0.876,Saint Mary's,0.003,0.0,0.0,False
-South,Houston,2,Idaho,15,0.988,0.974,0.982,0.986,Houston,0.0,0.0,0.0,False
-Midwest,Michigan,1,UMBC,16,0.992,0.988,0.99,0.996,Michigan,0.073,0.0,0.001,False
-Midwest,Georgia,8,Saint Louis,9,0.411,0.489,0.441,0.922,Saint Louis,0.0,0.0,0.0,False
-Midwest,Texas Tech,5,Akron,12,0.872,0.868,0.87,0.997,Texas Tech,0.412,0.0,0.008,False
-Midwest,Alabama,4,Hofstra,13,0.897,0.634,0.82,0.738,Alabama,0.159,0.0,0.003,False
-Midwest,Tennessee,6,Miami OH,11,0.907,0.835,0.879,0.928,Tennessee,0.036,0.0,0.001,False
-Midwest,Virginia,3,Wright State,14,0.988,0.953,0.973,0.965,Virginia,0.0,0.0,0.0,False
-Midwest,Kentucky,7,Santa Clara,10,0.585,0.628,0.606,0.956,Kentucky,0.09,0.0,0.002,False
-Midwest,Iowa State,2,Tennessee State,15,0.991,0.974,0.984,0.983,Iowa State,0.036,0.0,0.001,False
+South,Florida,1,Prairie View A&M,16,0.999,0.992,0.98,0.994,Florida,0.0,0.0,0.0,False
+South,Clemson,8,Iowa,9,0.563,0.537,0.707,0.974,Clemson,0.065,0.0,0.001,False
+South,Vanderbilt,5,McNeese State,12,0.874,0.639,0.8,0.764,Vanderbilt,0.0,0.0,0.0,False
+South,Nebraska,4,Troy,13,0.98,0.817,0.926,0.837,Nebraska,0.036,0.0,0.001,False
+South,North Carolina,6,VCU,11,0.792,0.803,0.781,0.989,North Carolina,0.187,0.0,0.004,False
+South,Illinois,3,Penn,14,0.99,0.955,0.98,0.965,Illinois,0.0,0.094,0.002,False
+South,Saint Mary's,7,Texas A&M,10,0.79,0.702,0.747,0.912,Saint Mary's,0.003,0.0,0.0,False
+South,Houston,2,Idaho,15,0.988,0.974,0.956,0.986,Houston,0.0,0.0,0.0,False
+Midwest,Michigan,1,UMBC,16,0.992,0.988,0.98,0.996,Michigan,0.073,0.0,0.001,False
+Midwest,Georgia,8,Saint Louis,9,0.422,0.489,0.52,0.933,Georgia,0.0,0.0,0.0,False
+Midwest,Texas Tech,5,Akron,12,0.875,0.868,0.849,0.993,Texas Tech,0.412,0.0,0.008,False
+Midwest,Alabama,4,Hofstra,13,0.911,0.634,0.809,0.723,Alabama,0.159,0.0,0.003,False
+Midwest,Tennessee,6,Miami OH,11,0.924,0.835,0.924,0.912,Tennessee,0.036,0.0,0.001,False
+Midwest,Virginia,3,Wright State,14,0.989,0.953,0.98,0.964,Virginia,0.0,0.0,0.0,False
+Midwest,Kentucky,7,Santa Clara,10,0.601,0.628,0.727,0.973,Kentucky,0.09,0.0,0.002,False
+Midwest,Iowa State,2,Tennessee State,15,0.992,0.974,0.971,0.982,Iowa State,0.036,0.0,0.001,False

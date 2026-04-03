@@ -15,7 +15,7 @@ from src.equations import (
     upset_volatility,
     is_cinderella,
 )
-from src.weights import CORE_WEIGHTS, LOGISTIC_K, PARAM_KEYS, DATASET_CONFIG
+from src.weights import CORE_WEIGHTS, ACTIVE_WEIGHTS, LOGISTIC_K, PARAM_KEYS, DATASET_CONFIG
 from src.utils import normalize_teams
 from src.wth_layer import compute_wth_adjustments, compute_total_wth_modifier
 
@@ -26,7 +26,7 @@ def compute_team_strengths(teams: List[Team]) -> List[Team]:
 
     for team in teams:
         team.team_strength = team_strength_composite(
-            team.normalized_params, CORE_WEIGHTS
+            team.normalized_params, ACTIVE_WEIGHTS
         )
 
     _detect_cinderellas(teams)
@@ -43,7 +43,7 @@ def compute_win_probability(matchup: Matchup) -> float:
     z = composite_score_differential(
         matchup.team_a.normalized_params,
         matchup.team_b.normalized_params,
-        CORE_WEIGHTS,
+        ACTIVE_WEIGHTS,
     )
 
     # H2H season tiebreaker: small nudge when the two teams met this year.
