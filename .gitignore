@@ -39,3 +39,6 @@ tmp/
 
 # Large model outputs
 results/*.pkl
+
+# Cursor AI planning artifacts (local only)
+.cursor/plans/
